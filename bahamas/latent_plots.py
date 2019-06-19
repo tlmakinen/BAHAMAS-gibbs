@@ -5,6 +5,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+import cosmology
 
 # Make a nifty plot to show latent vs observed SNIa attributes in a grid
 
@@ -34,16 +35,6 @@ def plot_attributes(D, param, iter):
     latent_spread_chain = [param[4], param[3], param[2]]
 
     fig,axs = plt.subplots(1, 3, figsize = (28,6))
-
-    # data for comparison
-    #data = pd.read_csv(datafname, sep='\s+', header=0)
-
-    #data_pops = [data['mB'].values, data['c'].values, data['x1'].values]
-    #data_spreads = [np.std(data['mB'].values)]
-
-    #data_labels = [' $\hat{m_B}$', '$\hat{c}$', '$\hat{x_1}$']
-#xlims = [(15, 27), (-0.8, 0.8), (-3.5, 3.5)]
-
 
     for i in range(len(axs)):
         # plot data attributes
@@ -79,3 +70,71 @@ def plot_attributes(D, param, iter):
 #fig.suptitle('Selection Function Classifier on Test SNIa set', fontsize=17)
 #axs[2].legend(loc='best', fontsize=11)
     plt.savefig(fname='latent_distr_comp.png', dpi='figure')
+
+
+# make diagnostic plot for posterior mean for 50 SN1a
+def plot_post_means(D_chain, param, datafname):
+    
+    D_chain = np.array(D_chain)
+
+    m_means = [] # vector of 50 type 1a SNe mean values for M in chain
+    c_means = []
+    x_means = []
+
+    for j in D_chain[0][:]:
+        m_means.append(np.mean(D_chain[2::3][j]))
+        c_means.append(np.mean(D_chain[0::3][j]))
+        x_means.append(np.mean(D_chain[1::3][j])))
+    
+    # compare to JLA-like sims -- take only every 10th snia
+    data = pd.read_csv(datafname, sep='\s+', header=0)[::10]
+
+    ndat = len(data)
+    Zhel = data['z'].values
+    # add second z column so that we have a zHD value
+    data.insert(loc=1, column='zHD', value=zHD)
+    Zcmb = data['z'].values
+
+    # unpack data values
+    mb_true = data['true_mb'].values
+    c_true = data['true_c'].values
+    x1_true = data['true_x1'].values
+    # compute true residual
+    a_true = 0.13
+    b_true = 2.56
+    mu = cosmology.muz(cosmo_param, Zcmb, Zhel) # distance modulus
+    M_true = []
+
+
+    for i in range(ndat):
+        M_true.append(mb_true[i] - mu[i] + a_true*x1_true - b_true*c_true) 
+    
+    # make 1 x 3 diagnostic scatter plot for M, c, x1
+    fig,(ax0,ax1,ax2) = plt.subplots(1, 3, figsize = (28,6))
+
+    # plot observed modulus vs M_true to show data scatter
+
+    plt.suptitle('Diagnostic Plot for Posterior Means', fontsize=32)
+    # plot M vs M_true
+    ax0.scatter(m_means, M_true, color='r', marker = 'x', s=5)
+    ax0.set_xlabel('latent $M$')
+    ax0.set_xlabel('$M_{sim}$')
+    # observed c vs simulated c
+    ax1.scatter(data['c'].values, c_true, color = 'b', marker = 'x', s=5, label='$\hat{c}$')
+    # latent c vs simulated c
+    ax1.scatter(c_means, c_true, color = 'r', marker = 'x', s=5, label='latent $c$')
+    ax1.set_xlabel('$c$')
+    ax1.set_xlabel('$c_{sim}$')
+    ax1.legend(fontsize = 22, loc='best')
+    # x1
+    ax1.scatter(data['x1'].values, c_true, color = 'b', marker = 'x', s=5, label='$\hat{x_1}$')
+    ax2.scatter(c_means, c_true, color = 'r', marker = 'x', s=5, label='latent $x_1$')
+    ax2.set_xlabel('$x_1$')
+    ax2.set_xlabel('$x_{1}_{sim}$')
+
+    plt.savefig(fname='posterior_diagnostic.png', dpi='figure')
+
+
+
+
+
