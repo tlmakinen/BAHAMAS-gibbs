@@ -33,19 +33,18 @@ def step_one(posterior_object_for_sample, D, loglike, param, ndim, cov_proposal,
 
     # Evaluate likelihood with original parameters for comparison
     old_loglike = posterior_object_for_sample.log_likelihood(param)
-    cosmo_param = param[8:]
+    cosmo_param = param[8:10]            # EDIT: just sample omegam, omegade
     # --------------------------------------------------
     # MH sampler STEP from posterior  
-    # sample from multivariate gaussian within our prior restrictions
-    cosmo_param_candidate = list(np.random.multivariate_normal(mean=cosmo_param, cov=cov_proposal))
-    param_candidate = param                        # copy in our current big parameter vector       
-    param_candidate[8:] = cosmo_param_candidate    # rewrite the newly sampled cosmo params
+    param_candidate = param 
+    # sample from multivariate gaussian within our prior restrictions      
+    param_candidate[8:10] = list(np.random.multivariate_normal(mean=cosmo_param, cov=cov_proposal))
 
     # compute new log likelihood with param candidates
     new_loglike = posterior_object_for_sample.log_likelihood(param_candidate)
     # if outside prior bounds, re-sample cosmo params from proposal distribution
     while new_loglike == 0:
-        param_candidate[8:] = list(np.random.multivariate_normal(mean=cosmo_param, cov=cov_proposal))
+        param_candidate[8:10] = list(np.random.multivariate_normal(mean=cosmo_param, cov=cov_proposal))
         new_loglike = posterior_object_for_sample.log_likelihood(param_candidate)
 
     # compute ratio of log likelihoods and move on if approaching higher density
@@ -60,7 +59,7 @@ def step_one(posterior_object_for_sample, D, loglike, param, ndim, cov_proposal,
         loglike = new_loglike
         
     else:
-        param[8:] = cosmo_param
+        param[8:10] = cosmo_param
         loglike = old_loglike
 
     return param,n_accept,loglike
@@ -173,7 +172,7 @@ def step_six(posterior_object_for_sample, D, param, ndim):
 #---------------------------------------------------------------------
 # Sampler runs for niters_burn iterations to gain an estimate of cosmo and SALT-II covariance
 
-def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outdir, plot=False, datafname=None):
+def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outdir, snapshot=False, datafname=None, diagnose=False):
     print('-------- BEGINNING BURN-IN CHAIN --------')
     print('burn in iterations: ', niters_burn)
 
@@ -196,7 +195,7 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
 
     # create positive semi-definite covariance matrix for proposal distributions
     from sklearn import datasets
-    cov_proposal_cosmo = datasets.make_spd_matrix(n_dim = 3, random_state=None) * 0.5
+    cov_proposal_cosmo = datasets.make_spd_matrix(n_dim = 2, random_state=None) * 0.5  # EDIT: just sample omegam, omegade
 
     # now compute proposal sigmas for SALT-2 params
     cov_proposal_B = datasets.make_spd_matrix(n_dim = 2, random_state=None) * 0.5
@@ -227,7 +226,7 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     alpha = chain_tab['alpha'].values
     beta = chain_tab['beta'].values
 
-    cosmo_proposal_cov = np.cov(np.matrix([omegam, w, h]))  # estimated proposal covariance
+    cosmo_proposal_cov = np.cov(np.matrix([omegam, w]))  # EDIT: just sample omegam, omegade
     B_proposal_cov = np.cov(np.matrix([alpha, beta]))       
     
     # TODO:
@@ -247,6 +246,8 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     # empty chain for parameter vectors
     chains = []
     loglike = 0
+    
+    D_chain = [] # for making diagnostic plot for subset of SN1a
     # make prior cube
     cube = gibbs_library.makePriorCube(ndim)
 
@@ -277,10 +278,27 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
             
             if iter % 100 == 0:
                 print('current parameter vector \nand likelihood for iter {}: '.format(iter), param_loglike)
+            if diagnose == True:
+                # latent vals from chain
+                c = D[0::3]
+                x1 = D[1::3]
+                mB = D[2::3]
+                # take only every 10th SN1a
+                c = c[::10]
+                x1 = x1[::10]
+                mB = mB[::10]
+                D_save = [] # thinned latent vector to be saved
+                for i in range(len(c)):
+                    D_save.append(c[i])
+                    D_save.append(x1[i])
+                    D_save.append(mB[i])
+                
+                D_chain.append(D_save) # add to trace chain
+                
 
             wr.writerow(param_loglike)    # write the parameter step as we go.
 
-            if plot == True:
+            if snapshot == True:
                 if iter == niters-1:
                     latent_plots.plot_attributes(D, param, iter)
 
@@ -290,6 +308,13 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     with open(fname, 'w') as myfile:
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         for i in chains:
+            wr.writerow(i)
+    fname = outdir + 'D_latent'
+
+    # save chain output for diagnostic purposes
+    with open(fname, 'w') as myfile:
+        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        for i in D_chain:
             wr.writerow(i)
 
 
