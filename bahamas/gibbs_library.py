@@ -133,7 +133,8 @@ class posteriorModel(object):
         Zcmb, Zhel = self.data.T[0:2]
         phi = self.data[:, 2:5]    
         mu = cosmology.muz(cosmo_param, Zcmb, Zhel)   # data extracted from self, only dependent on cosmo
-        
+
+      
         J = self.J
 
         # extract data uncertainties
@@ -211,6 +212,7 @@ class posteriorModel(object):
         if (param[9] > 1.) or (param[9] < 0.):
             #print('omegam outside bounds')
             return 0.0
+
         if (param[10] < 0.3) or (param[10] > 1.):
             return 0.0
         if (param[0] > 1.) or (param[0] < 0.):

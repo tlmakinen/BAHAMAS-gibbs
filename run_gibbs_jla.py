@@ -9,21 +9,26 @@ import time
 import bahamas
 import priors
 
+
 from bahamas import gibbs_library, gibbs_sampler, get_stats
 
 # create output directory
 if not os.path.exists('gibbs_chains'): 
     os.mkdir('gibbs_chains')
 
+datafname = './data/lc_params.txt'
+
 # load data 
 sim_number = sys.argv[1] #if len(sys.argv) == 3 else 1 # default to dataset 1
 names = ['z', 'c', 'x1', 'mb']
-data = pd.read_csv('./data/lc_params.txt', header=0, sep='\s+', usecols=names)
+data = pd.read_csv(datafname, header=0, sep='\s+', usecols=names)
 #print(data)
 zHD = data['z'].values
 # add second z column so that we have a zHD value
 data.insert(loc=1, column='zHD', value=zHD)
-data = np.array(data)
+
+data = np.array(data[['z', 'zHD', 'c', 'x1', 'mb']])
+
 sigmaC = np.array(pd.read_csv('./data/sim_statssys.txt', sep='\s+', header=None))
 
 log_sigmaCinv = (-1 * np.linalg.slogdet(sigmaC)[1])
@@ -76,16 +81,17 @@ t2 = time.time()
 print('log-likelihood near true theta = ', log_post)
 print('log-posterior evaluation time = ', t2-t1)
 
-# set up empty D column-stacked latent variable array
-D = []
-for i in range(ndat):
-    D.append(np.zeros((1,3)))
 
 # make prior cube
 cube = gibbs_library.makePriorCube(ndim)
 # start off params with priors
 prior = makePrior(cube)
 
+# just to test, freeze cosmo
+#prior[:2] = [0.13, 2.56]
+#prior[8:10] = [0.3, 0.7]
+
+print('prior = ', prior)
 
 #niters = 2  # iterations for gibbs
 #niters_burn = 3
@@ -96,7 +102,7 @@ niters = int(sys.argv[3]) #if len(sys.argv) == 3 else niters
 t1 = time.time()
 # run the sampler to estimate posterior distributions
 gibbs_sampler.runGibbs(prior=prior, posterior_object_for_sample=posterior_object_for_sample, ndim=ndim, 
-                                                niters=niters, niters_burn=niters_burn, outdir='./gibbs_chains/', plot=True)
+                                                niters=niters, niters_burn=niters_burn, outdir='./gibbs_chains/', snapshot=True, datafname=datafname)
 t2 = time.time()
 
 print('Gibbs Sampler Evaluation time = ', t2-t1)

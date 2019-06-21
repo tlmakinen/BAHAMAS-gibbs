@@ -53,7 +53,7 @@ def step_one(posterior_object_for_sample, D, loglike, param, ndim, cov_proposal,
     # now accept or reject the x candidate. Do this by sampling from U(0,1)        
     u = np.random.uniform(low=0, high=1)
 
-    if (ln_acc_ratio > np.log(u)) or (ln_acc_ratio > 0.): #and (not np.isnan(ln_acc_ratio)):
+    if (ln_acc_ratio > np.log(u)) or (ln_acc_ratio > 0.): 
         n_accept += 1  # for computing acceptance fraction for cosmo params
         param = param_candidate
         loglike = new_loglike
@@ -195,10 +195,10 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
 
     # create positive semi-definite covariance matrix for proposal distributions
     from sklearn import datasets
-    cov_proposal_cosmo = datasets.make_spd_matrix(n_dim = 2, random_state=None) * 0.5  # EDIT: just sample omegam, omegade
+    cov_proposal_cosmo = datasets.make_spd_matrix(n_dim = 2, random_state=None) * 0.1  # EDIT: just sample omegam, omegade
 
     # now compute proposal sigmas for SALT-2 params
-    cov_proposal_B = datasets.make_spd_matrix(n_dim = 2, random_state=None) * 0.5
+    cov_proposal_B = datasets.make_spd_matrix(n_dim = 2, random_state=None) * 0.1
     #print('B proposal sigmas: ', cov_proposal_B)
     # We run our initial chains to get an estimate of the covariance between cosmo_params and cov between B_params    
     for iter in range(niters_burn):
@@ -226,18 +226,14 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     alpha = chain_tab['alpha'].values
     beta = chain_tab['beta'].values
 
-    cosmo_proposal_cov = np.cov(np.matrix([omegam, w]))  # EDIT: just sample omegam, omegade
+    cosmo_proposal_cov = np.cov(np.matrix([omegam, w]))   # EDIT: just sample omegam, omegade
     B_proposal_cov = np.cov(np.matrix([alpha, beta]))       
     
-    # TODO:
-    # Now run the full Gibbs steps in order, updating parameter vector each time
-    # set the covariances to the matrices estimated above
-    # Run 3 different chains concurrently to test convergence
-
-
+    print('cosmo proposal covariance: ', cosmo_proposal_cov)
+    #print('B proposal cov: ', B_proposal_cov)
 
     print('-------- STARTING ACTUAL SAMPLER CHAIN -------- ')
-    print('gibbs sampling for {} iterations'.format(niters))
+    #print('gibbs sampling for {} iterations'.format(niters))
             # set up empty D column-stacked latent variable array
     D = []
     for i in range(ndat):
@@ -250,13 +246,12 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     D_chain = [] # for making diagnostic plot for subset of SN1a
     # make prior cube
     cube = gibbs_library.makePriorCube(ndim)
+    param = gibbs_library.vanillaPrior(cube)  # start with prior again
 
-    # start off params with priors
-    #prior = gibbs_library.vanillaPrior(cube)
     # reset acceptance fraction
     n_accept_cosmo = 0.0
     n_accept_B = 0.0
-    param = prior
+    
 
     # open write file in case the PBS job gets killed part way:
     fname = outdir + 'post_chains_in_prog.csv'
@@ -309,7 +304,7 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         for i in chains:
             wr.writerow(i)
-    fname = outdir + 'D_latent'
+    fname = outdir + 'D_latent.csv'
 
     # save chain output for diagnostic purposes
     with open(fname, 'w') as myfile:
@@ -317,6 +312,26 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
         for i in D_chain:
             wr.writerow(i)
 
+
+# --------------------------------------------
+#
+#  MPI-enabled Gibbs Sampling
+#
+#---------------------------------------------
+# function to walk through steps of gibbs sampler
+#def eval_Gibbs():
+    
+
+#def runGibbs_MPI(prior, posterior_object_for_sample, 
+#            ndim, niters, niters_burn, outdir, snapshot=False, datafname=None, diagnose=False):
+
+    #from mpi4py import MPI
+    #comm = MPI.COMM_WORLD
+    
+    #size = comm.Get_size()
+    #rank = comm.Get_rank()
+
+    
 
 # --------------------------------------------
 #
