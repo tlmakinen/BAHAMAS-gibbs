@@ -11,36 +11,52 @@ The bones of BAHAMAS are laid out in [March et al. (2011)](https://spiral.imperi
 formalized/extended upon in [Shariff et al. (2016)](https://arxiv.org/abs/1510.05954). For further
 background, read [Kelly (2007)](http://iopscience.iop.org/article/10.1086/519947/pdf).
 
+## BAHAMAS Gibbs Sampling
+
+This is a re-implementation of the posterior sampling scheme laid out in [Shariff et al. (2016)]. While much slower than mpi-enabled sampling schemes (see BAHAMAS with MultiNest), Gibbs Sampling gives us full access to our posterior distribution at all sampling steps, enabling nonsymmetric tweaking of our hierarchical model. 
+
+The sampler is to be augmented with selection effects bias correction (in progress), and can be run in the same environment as MutiNest-enabled BAHAMAS. In its current implementation, the model can probe both $\lambda$CDM and $w$CDM cosmological models, varying either Dark Energy density or equation of state parameters, respectively.
+
 ## Dependencies
 
-The main library we use is [MultiNest](https://ccpforge.cse.rl.ac.uk/gf/project/multinest/)
-for posterior sampling. Follow [these instructions](http://johannesbuchner.github.io/PyMultiNest/install.html)
-to install MultiNest and PyMultiNest, a Python wrapper for MultiNest.
+Standard Python modules (e.g. Numpy, Scipy, Pandas) are required, as well as the specialty packages scikit-learn
 
-If MPI is being used to parallelize sampling, `mpi4py` needs to be installed. 
+## Contents
 
-You'll also need to have a few other common libraries (e.g. `pandas`, `numpy`, etc.).
+1) run_vanilla_gibbs.sh
+    Shell script for executing job on HPC cluster. Working on OpenMP threading to speed up computation
 
-## Usage
+2) `run_gibbs*.py` 
+    "Main" script for Python execution. Requires data filename and number of iterations as arguments. 
 
-### Posterior Sampling
-Run `python run.py` to start generating posterior samples. Depending on the complexity
-of your setup (e.g. number of parameters, sampling efficiency, etc.) sampling can take on
-the order of minutes to hours (or even days) to converge.
+3) `bahamas/`
+    Folder with all the main ingredients for posterior computation:
+    i) gibbs_library.py
+        Script for matrix manipulation and log-posterior computation for sampler
+    ii) `gibbs_sampler.py`
+        Code for iterative steps of the Gibbs Sampler. Calls on aspects defined in library script.
+    iii) `cosmology.py`
+        Code for computing distance modulus as a function of cosmological parameters and observed variables. Can be changed for $\lambda$CDM or $w$CDM cosmological models
+    iv) `selection_effects.py`
+        Code for implementing selection effects addition to log-posterior. Outlined in Chen et al (in prog)
+    v) `get_stats.py`
+        Helper function for creating observed covariance matrix
+4) `data/`
+    i) `sn1a_generator.py`
+        Code for generating JLA-like simulations according to BAHAMAS framework to test inference 
 
-If using the Imperial HPC, run `qsub run.sh` to run `run.py` on the HPC. To learn
+## Posterior Sampling
+
+Modify and run `python run_gibbs.py` to take in the dataset desired. Computation time for 11,000 iterations (niters_burn = 1000, niters = 10,000) single-node CPU is between 8 and 12 hours in current implementation
+
+If using the Imperial HPC, run `qsub run_vanilla_gibbs.sh` to run `run_gibbs.py` on the HPC. To learn
 more about the HPC, take some time to explore [this](http://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/support/getting-started/).
 
+
 ### Posterior Analysis
-Once the sampling converges, you'll be able to find the posterior samples in 
-`chains/post_equal_weights.dat`. 
+Output from the sampler, unless otherwise directed, will be located in a directory labeled `gibbs_chains/post_chains.csv`. This file contains the trace, or posterior "chains" of the sampler, with burn-in iterations discarded. Thinning the chain by every 10th element should yield a plottable distribution.
 
-Posterior analysis can be conducted using the notebooks found in `notebooks/`.
-
-## Troubleshooting
-If your sampling has problems when you start to use MPI and you're working on the 
-Imperial HPC, make sure you have the conda version of `mpi4py` because the pip version
-won't work (as of Summer 2018).
+Use one of the Jupyter Notebook files located in `notebooks` for `get_dist`-enhanced corner plot analysis of the posterior.
 
 ## Authors
 I believe until this point, the list of authors includes Hik Shariff, Wahidur Rahman,
