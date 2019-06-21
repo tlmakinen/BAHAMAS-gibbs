@@ -15,7 +15,7 @@ background, read [Kelly (2007)](http://iopscience.iop.org/article/10.1086/519947
 
 This is a re-implementation of the posterior sampling scheme laid out in [Shariff et al. (2016)]. While much slower than mpi-enabled sampling schemes (see BAHAMAS with MultiNest), Gibbs Sampling gives us full access to our posterior distribution at all sampling steps, enabling nonsymmetric tweaking of our hierarchical model. 
 
-The sampler is to be augmented with selection effects bias correction (in progress), and can be run in the same environment as MutiNest-enabled BAHAMAS. In its current implementation, the model can probe both $\lambda$CDM and $w$CDM cosmological models, varying either Dark Energy density or equation of state parameters, respectively.
+The sampler is to be augmented with selection effects bias correction (in progress), and can be run in the same environment as MutiNest-enabled BAHAMAS. In its current implementation, the model can probe both Lambda-CDM and wCDM cosmological models, varying either Dark Energy density or equation of state parameters, respectively.
 
 ## Dependencies
 
@@ -33,14 +33,19 @@ Standard Python modules (e.g. Numpy, Scipy, Pandas) are required, as well as the
     Folder with all the main ingredients for posterior computation:
     i) gibbs_library.py
         Script for matrix manipulation and log-posterior computation for sampler
+
     ii) `gibbs_sampler.py`
         Code for iterative steps of the Gibbs Sampler. Calls on aspects defined in library script.
+
     iii) `cosmology.py`
-        Code for computing distance modulus as a function of cosmological parameters and observed variables. Can be changed for $\lambda$CDM or $w$CDM cosmological models
+        Code for computing distance modulus as a function of cosmological parameters and observed variables. Can be changed for Lambda-CDM or wCDM cosmological models
+
     iv) `selection_effects.py`
         Code for implementing selection effects addition to log-posterior. Outlined in Chen et al (in prog)
+
     v) `get_stats.py`
         Helper function for creating observed covariance matrix
+
 4) `data/`
     i) `sn1a_generator.py`
         Code for generating JLA-like simulations according to BAHAMAS framework to test inference 
