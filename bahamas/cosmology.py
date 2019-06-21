@@ -62,5 +62,5 @@ def muz(cosmo_param, z, z_helio):
     #omegade =  1 - omegam
     #w = cosmo_param[1]
     #h = cosmo_param[2]
-    h = 0.7
+    h = 0.72
     return (5.0 * np.log10(Dlz(omegam, omegade, h, z, w, z_helio))+25)
