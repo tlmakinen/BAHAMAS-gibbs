@@ -7,8 +7,11 @@ import matplotlib.pyplot as plt
 from scipy.integrate import quad
 import scipy.stats as ss
 
+
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+
+
 
 c_light = 299792.0 # Speed of light in km/s
 h = 0.72 # Hubble parameter
@@ -21,16 +24,19 @@ angular_diameter_constraint = 1408
 DA_variance = 45.0 ** 2.0
 hubbles_constant = 100
 
+
 true_alpha = 0.13
 true_beta = 2.56
 intrinsic_dispersion = 0.1
 true_omegam = 0.3
 true_omegade= 0.7
 
-true_x1 = 0
-true_c = 0
+
+true_x1_mean = 0
+true_c_mean = 0
 Rx = 1.0
 Rc = 0.1
+
 
 number_of_sne = 500
 
@@ -40,11 +46,14 @@ print("Quadrupole Value: ", sys.argv[2])
 print("LC Params filename: ", sys.argv[3])
 print("Full Covariance filename: ", sys.argv[4])
 print("Distribution on sky: ", sys.argv[5])
+
 def normalise(v):
     norm = np.linalg.norm(v)
     if norm == 0:
        return v
     return v / norm
+
+
 
 def get_norm_cartesian(l,b):
     cartesian_form = np.array([np.cos(b)*np.cos(l),np.cos(b)*np.sin(l),np.sin(b)])
@@ -52,11 +61,14 @@ def get_norm_cartesian(l,b):
     cartesian_form = normalise(cartesian_form)
     return cartesian_form
 
+
+
 #Dipole values
 dipole_amplitude = float(sys.argv[1])
 dipole_l = np.pi/12.0 #15 degrees
 dipole_b = np.pi/6.0 #30 degrees
 dipole_direction = get_norm_cartesian(dipole_l,dipole_b)
+
 
 #Quadrupole values
 quadrupole_amplitude = float(sys.argv[2])
@@ -65,11 +77,16 @@ quadrupole_b = np.pi/4.0 #45 degrees
 quadrupole_direction = get_norm_cartesian(quadrupole_l,quadrupole_b)
 
 
+
+
+
 def get_dipole(dipole_amplitdue, dipole_direction , sn_direction):
     return (dipole_amplitude * np.dot(dipole_direction, sn_direction))
 
+
 def get_quadrupole(quadrupole_amplitude, quadrupole_direction, sn_direction):
     return (quadrupole_amplitude * ((3.0 * (np.dot(quadrupole_direction,sn_direction) ** 2.0)) - 1.0)) #m=0 l=2
+
 
 def generate_covariance_matrix(data):
     cov_data = np.zeros((np.shape(data)[0]*3,np.shape(data)[0]*3)) # Assume diagonal covariance
@@ -79,8 +96,11 @@ def generate_covariance_matrix(data):
         cov_data[i*3 + 2][i*3 + 2] = data[i][2] ** 2.0# Set mb value
     return cov_data
 
+
+
 def get_magnitude(mu, M, alpha, x1, beta, colour):
     return mu + M - (alpha * x1) + (beta * colour)
+
 
 def distance_modulus(z, matter_density,d_energy_density, sn_l, sn_b):
     #print(type(z),type(matter_density),type(d_energy_density),type(c_light),type(h))
@@ -92,12 +112,15 @@ def distance_modulus(z, matter_density,d_energy_density, sn_l, sn_b):
     #introduce dipole/quadrupole here
     dipole_value = get_dipole(dipole_amplitude,dipole_direction,sn_cartesian)
 
+
     quadrupole_value = get_quadrupole(quadrupole_amplitude,quadrupole_direction,sn_cartesian)
     #print("Quadrupole: ",quadrupole_value)
     #print("Dipole value:",dipole_value,sn_cartesian,sn_l,sn_b)
     theoretical_distance_modulus = theoretical_distance_modulus * (1 + dipole_value + quadrupole_value)
 
     return theoretical_distance_modulus
+
+
 
 
 def luminosity_distance(z, matter_density, d_energy_density):
@@ -115,6 +138,7 @@ def luminosity_distance(z, matter_density, d_energy_density):
         curvature_term = curvature_density * ((1.0 + z)**2.0)
         integrand = (matter_term + energy_term + curvature_term)**(-0.5)
         return integrand
+
     integrand,err = quad(luminosity_integrand,0.0,z)
 
 
@@ -131,8 +155,11 @@ def luminosity_distance(z, matter_density, d_energy_density):
         #instead we use the simplified equation that appears when curvature is 0.
         l_distance = (1 + z) * integrand
 
+
+
     #print(l_distance)sc
     return l_distance
+
 
 
 #####DATA
@@ -152,6 +179,7 @@ c = [float(snarray[i][8]) for i in range(1,240)]
 dc = [float(snarray[i][9]) for i in range(1,240)]
 '''
 
+
 name = [snarray[i][0] for i in range(1,len(snarray))]
 Zcmb = [float(snarray[i][1]) for i in range(1,len(snarray))]
 Zhel = [float(snarray[i][2]) for i in range(1,len(snarray))]
@@ -166,15 +194,16 @@ dec = [float(snarray[i][17]) for i in range(1,len(snarray))]
 
 
 #Generate KDE estimate of position DATA
-
 values = np.vstack([ra, dec])
 kernel = ss.gaussian_kde(values)
+
 
 xmin = min(ra)
 xmax = max(ra)
 ymin = min(dec)
 ymax = max(dec)
 print(xmin,xmax,ymin,ymax)
+
 
 
 X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
@@ -184,25 +213,29 @@ Z = np.reshape(kernel(positions).T, X.shape)
 
 
 
-
-
 Zcmb_mean = np.mean(Zcmb)
 Zcmb_std = np.std(Zcmb)
+
 
 dmb_mean = np.mean(dmb)
 dmb_std = np.std(dmb)
 
+
 dx1_mean = np.mean(dx1)
 dx1_std = np.std(dx1)
+
 
 dc_mean = np.mean(dc)
 dc_std = np.std(dc)
 
+
 mb_mean = np.mean(mb)
 mb_std = np.std(mb)
 
+
 x1_mean = np.mean(x1)
 x1_std = np.std(x1)
+
 
 c_mean = np.mean(c)
 c_std = np.std(c)
@@ -210,9 +243,13 @@ c_std = np.std(c)
 #print(Zcmb_mean, Zcmb_std, dmb_mean, dmb_std, dx1_mean, dx1_std, dc_mean, dc_std)
 
 
+
+
+
 def generate_sn1a():
 
     #Steps followed in March et al 20011
+
     #Step, 1 draw latent redshift
     z = np.random.normal(loc=Zcmb_mean, scale = Zcmb_std)
     l = 0
@@ -247,13 +284,12 @@ def generate_sn1a():
     #Step 2, compute mu_i using fiducial values
     mu_i = distance_modulus(z,true_omegam,true_omegade,l,b)
 
-    # latent mb
-    # mb = mu_i + M_i
 
     #Step 3, Draw latent x1_i, c_i, M_i
     M_i = np.random.normal(loc=M_0, scale = intrinsic_dispersion)
-    x1_i = np.random.normal(loc=x1_mean, scale = x1_std)
-    c_i = np.random.normal(loc=c_mean, scale = c_std)
+    x1_i = np.random.normal(loc=true_x1_mean, scale = Rx)
+    c_i = np.random.normal(loc=true_c_mean, scale = Rc)
+
 
     #Step 4, compute exact mb* from distance modulus
     mb = get_magnitude(mu_i,M_i, true_alpha, x1_i, true_beta, c_i)
@@ -264,13 +300,16 @@ def generate_sn1a():
         #negative error so resample
         observed_dx1 = np.random.normal(loc=dx1_mean, scale = dx1_std)
 
+
     observed_dc1 = np.random.normal(loc=dc_mean, scale = dc_std)
     while (observed_dc1 < 0):
         observed_dc1 = np.random.normal(loc=dc_mean, scale = dc_std)
 
+
     observed_dmb = np.random.normal(loc=dmb_mean, scale = dmb_std)
     while(observed_dmb < 0):
         observed_dmb = np.random.normal(loc=dmb_mean, scale = dmb_std)
+
 
     #Step 6, Draw observed SALT-II values of x,c and mb
     observed_mb = np.random.normal(loc=mb, scale = observed_dmb)
@@ -282,8 +321,11 @@ def generate_sn1a():
 
 
 
-
     return (z,observed_mb,observed_dmb,observed_x1,observed_dx1,observed_c1,observed_dc1,l,b,true_mb,true_x1,true_c)
+
+
+
+
 
 
 
@@ -303,6 +345,7 @@ sim_true_c = []
 
 
 
+
 for i in range(0,number_of_sne):
     sim = generate_sn1a()
     sim_z.append(sim[0])
@@ -319,6 +362,7 @@ for i in range(0,number_of_sne):
     sim_true_x1.append(sim[10])
     sim_true_c.append(sim[11])
 
+
 sim_z = np.array(sim_z)
 sim_zhel = np.array(sim_zhel)
 sim_mb = np.array(sim_mb)
@@ -334,6 +378,8 @@ sim_true_x1 = np.array(sim_true_x1)
 sim_true_c = np.array(sim_true_c)
 
 
+
+
 fig = plt.figure()
 fig.suptitle('Simulated SN1a data from JLA full sample')
 plt.subplot(241)
@@ -341,49 +387,55 @@ plt.xlabel('$z$')
 plt.ylabel('$m_{B}$')
 plt.scatter(sim_z,sim_mb,marker = 'x',s=5, label="Simulated")
 plt.scatter(Zcmb,mb,marker = 'x',s=5, label="JLA")
-plt.ylim(bottom = 15)
-plt.xlim(left = 0)
+plt.ylim(ymin = 15)
+plt.xlim(xmin = 0)
 plt.legend(bbox_to_anchor=(0,1.2), loc="upper left")
+
 
 plt.subplot(242)
 plt.xlabel('$z$')
 plt.ylabel('$x_{1}$')
 plt.scatter(sim_z,sim_x1,marker = 'x',s=5)
 plt.scatter(Zcmb,x1,marker = 'x',s=5)
-plt.ylim(bottom = -5)
-plt.xlim(left = 0)
+plt.ylim(ymin = -5)
+plt.xlim(xmin = 0)
+
 
 plt.subplot(243)
 plt.xlabel('$z$')
 plt.ylabel('c (colour)')
 plt.scatter(sim_z,sim_c,marker = 'x',s=5)
 plt.scatter(Zcmb,c,marker = 'x',s=5)
-plt.ylim(bottom = -0.5)
-plt.xlim(left = 0)
+plt.ylim(ymin = -0.5)
+plt.xlim(xmin = 0)
+
 
 plt.subplot(244)
 plt.xlabel('$\sigma_{c}$')
 plt.ylabel('$\sigma_{x_{1}}$')
 plt.scatter(sim_dc,sim_dx1,marker = 'x',s=5)
 plt.scatter(dc,dx1,marker = 'x',s=5)
-plt.ylim(bottom = 0)
-plt.xlim(left = 0)
+plt.ylim(ymin = 0)
+plt.xlim(xmin = 0)
+
 
 plt.subplot(245)
 plt.xlabel('$\sigma_{x_{1}}$')
 plt.ylabel('$\sigma_{m_{B}}$')
 plt.scatter(sim_dx1,sim_dmb,marker = 'x',s=5)
 plt.scatter(dx1,dmb,marker = 'x',s=5)
-plt.ylim(bottom = 0)
-plt.xlim(left = 0)
+plt.ylim(ymin = 0)
+plt.xlim(xmin = 0)
+
 
 plt.subplot(246)
 plt.xlabel('$\sigma_{c}$')
 plt.ylabel('$\sigma_{m_{B}}$')
 plt.scatter(sim_dc,sim_dmb,marker = 'x',s=5)
 plt.scatter(dc,dmb,marker = 'x',s=5)
-plt.ylim(bottom = 0)
-plt.xlim(left = 0)
+plt.ylim(ymin = 0)
+plt.xlim(xmin = 0)
+
 
 #Convert JLA coordinates to galatic coordinates
 c = SkyCoord(ra = ra, dec = dec, unit = (u.degree,u.degree))
@@ -395,11 +447,14 @@ plt.ylabel('$b$')
 plt.scatter(sim_l,sim_b,marker = 'x',s=5)
 plt.scatter(l,b,marker = 'x',s=5)
 
+
 plt.savefig('simulatedsne.png')
 #plt.show()
+
 
 headers = "z mb dmb x1 dx1 c dc l b true_mb true_x1 true_c"
 simulated_data = (np.array([sim_z,sim_mb,sim_dmb,sim_x1,sim_dx1,sim_c,sim_dc,sim_l,sim_b,sim_true_mb,sim_true_x1,sim_true_c]).transpose())
 simulated_covariance = generate_covariance_matrix(simulated_data)
 np.savetxt(sys.argv[3],simulated_data, delimiter=' ',header = headers,comments="")
 np.savetxt(sys.argv[4], simulated_covariance, delimiter=' ')
+
