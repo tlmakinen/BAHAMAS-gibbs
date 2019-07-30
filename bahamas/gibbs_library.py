@@ -75,12 +75,12 @@ def vanillaPrior(cube, ndim=1, nparams=1):
     cube[2] = priors.log_uniform(cube[2], 10**-5, 10**2) # Rx
     cube[3] = priors.log_uniform(cube[3], 10**-5, 10**2) # Rc (CHANGE FOR NON-SYMMETRIC)
     cube[4] = cube[4] * 1                                # sigma_res (in likelihood code)
+    #cube[4] = np.exp(priors.log_invgamma(cube[4], 0.003, 0.003))
     cube[5] = priors.gaussian(cube[5], 0, 1**2)          # cstar 
-    cube[6] = priors.gaussian(cube[6], .0796, .02)       # xstar
-    cube[7] = priors.gaussian(cube[7], -19.3, 2.)        # mstar
-    cube[8] = cube[8] * 1                                # omegam
-    cube[9] = cube[9] * 1                                # omegade
-    #cube[9] = cube[9] * -4                               # w   EDIT
+    cube[6] = priors.gaussian(cube[6], 0., 10**2)       # xstar
+    cube[7] = priors.gaussian(cube[7], -19.3, 2**2)        # mstar
+    cube[8] = cube[8] * 2                                # omegam
+    cube[9] = cube[9] * 2                                # omegade   EDIT
     cube[10] = 0.3 + cube[10] * 0.7                      # h   EDIT
     return cube
 
@@ -133,6 +133,8 @@ class posteriorModel(object):
         Zcmb, Zhel = self.data.T[0:2]
         phi = self.data[:, 2:5]    
         mu = cosmology.muz(cosmo_param, Zcmb, Zhel)   # data extracted from self, only dependent on cosmo
+        if np.any(np.isnan(mu)): # quit if hubble integral is not integrable
+            return -np.inf
 
       
         J = self.J
@@ -204,21 +206,16 @@ class posteriorModel(object):
    
     def log_likelihood(self, param):
         # Impose prior constraints:
-        if (param[8] > 1.) or (param[8] < 0.):
-            #print('omegam outside bounds')
-            return 0.0
-        #if (param[9] > 0.) or (param[9] < -4.):
-            #return 0.0
-        if (param[9] > 1.) or (param[9] < 0.):
-            #print('omegam outside bounds')
-            return 0.0
-
-        if (param[10] < 0.3) or (param[10] > 1.):
-            return 0.0
-        if (param[0] > 1.) or (param[0] < 0.):
-            return 0.0
-        if (param[1] > 4.) or (param[1] < 0.):
-            return 0.0
+        if (param[8] > 2.) or (param[8] < 0.): # omegam
+            return -np.inf
+        if (param[9] > 2.) or (param[9] < 0.): # omegade
+            return -np.inf
+        if (param[10] < 0.3) or (param[10] > 1.): # h
+            return -np.inf
+        if (param[0] > 1.) or (param[0] < 0.): # alpha
+            return -np.inf
+        if (param[1] > 4.) or (param[1] < 0.): # beta
+            return -np.inf
         
         cosmo_param = param[8:]
         param = param[:8]
@@ -229,6 +226,8 @@ class posteriorModel(object):
         Zcmb, Zhel = self.data.T[0:2]
         phi = self.data[:, 2:5]    
         mu = cosmology.muz(cosmo_param, Zcmb, Zhel)   # data extracted from self, only dependent on cosmo
+        if np.any(np.isnan(mu)): # quit if hubble integral is not integrable
+            return -np.inf
 
         J = self.J
 
@@ -280,7 +279,7 @@ class posteriorModel(object):
         lz = 0.01
         sigma_lz = 0.0135
 
-        mu_sim = cosmology.muz([0.30, -1, 0.70], lz, lz)
+        mu_sim = cosmology.muz([0.30, 0.7, 0.72], lz, lz)
         mu_fit = cosmology.muz(cosmo_param, lz, lz)
         anchor = -0.5 * ((mu_sim - mu_fit)**2 / sigma_lz**2) + 1 / (np.sqrt(2 * np.pi) * sigma_lz)
 
@@ -289,3 +288,46 @@ class posteriorModel(object):
     
         return -0.5 * (chisquare - parta + 3 * ndat * np.log(2 * np.pi)) + anchor + res_prior
 
+    def log_like_selection(self, param):
+        J = self.J
+        sigmaCinv = self.sigmaCinv
+        log_sigmaCinv = self.log_sigmaCinv
+        data = self.data
+        ndat = self.ndat
+
+        # impose prior constraints
+        if (param[8] > 2.) or (param[8] < 0.): # omegam
+            return -np.inf
+        if (param[9] > 2.) or (param[9] < 0.): # omegade
+            return -np.inf
+        if (param[10] < 0.3) or (param[10] > 1.): # h
+            return -np.inf
+        if (param[0] > 1.) or (param[0] < 0.): # alpha
+            return -np.inf
+        if (param[1] > 4.) or (param[1] < 0.): # beta
+            return -np.inf
+
+
+        return bahamas.vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, param, data, ndat)
+
+    def log_correction(self, param):
+        J = self.J
+        sigmaCinv = self.sigmaCinv
+        log_sigmaCinv = self.log_sigmaCinv
+        data = self.data
+        ndat = self.ndat
+
+        # impose prior constraints
+        if (param[8] > 2.) or (param[8] < 0.): # omegam
+            return -np.inf
+        if (param[9] > 2.) or (param[9] < 0.): # omegade
+            return -np.inf
+        if (param[10] < 0.3) or (param[10] > 1.): # h
+            return -np.inf
+        if (param[0] > 1.) or (param[0] < 0.): # alpha
+            return -np.inf
+        if (param[1] > 4.) or (param[1] < 0.): # beta
+            return -np.inf
+
+
+        return bahamas.vincent_log_integral(param, data, ndat)

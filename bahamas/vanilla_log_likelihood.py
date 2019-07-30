@@ -57,37 +57,32 @@ def log_likelihood(J, sigmaCinv, log_sigmaCinv, param, cosmo_param, data, mu, nd
     b = np.matrix([[cstar], [xstar], [mstar]])
     Ystar = J * b  # J * Dstar
 
-    print('ystar: ', Ystar)
     # Lower triangular factorized sigmaA
     cho_factorized_sigmaAinv = scipy.linalg.cho_factor(sigmaAinv, lower=True)
     
     Y0 = np.matrix(scipy.linalg.cho_solve(cho_factorized_sigmaAinv, Delta + sigmaPinv * Ystar))  # muA
-    
-    print('y0: ', Y0)
 
     chi1 = np.einsum('i,ij,j', np.array(X0), sigmaCinv, np.array(X0))
-    print('chi1: ', chi1)
     chi2 = Y0.T * sigmaAinv * Y0
-    print('chi2: ', chi2)
     chi3 = Ystar.T * sigmaPinv * Ystar
-    print('chi3: ', chi3)
     chisquare =  chi1 - chi2 + chi3
-    print('chisq: ', chisquare)
     chisquare = np.array(chisquare)[0,0]
-    print('chisq: ', chisquare)
+ 
     
     logdetsigmaPinv = -2 * ndat * np.log(rc * rx * sigma_res)
     parta = log_sigmaCinv - 2 * ndat * np.log(rc * rx * sigma_res) - 2 * np.sum(np.log(cho_factorized_sigmaAinv[0].diagonal()))
 
-    print('parta: ', parta)
     # addition of low z anchor
     lz = 0.01
     sigma_lz = 0.0135
 
-    mu_sim = cosmology.muz([0.30, -1, 0.70], lz, lz)
+    mu_sim = cosmology.muz([0.30, 0.7, 0.72], lz, lz)
     mu_fit = cosmology.muz(cosmo_param, lz, lz)
     anchor = -0.5 * ((mu_sim - mu_fit)**2 / sigma_lz**2) + 1 / (np.sqrt(2 * np.pi) * sigma_lz)
 
+    # EDIT: remove anchor for now
+    anchor = 0.0
+    
     # INVGAMMA(0.003,0.003) prior distribution on sigma_res^2
     res_prior = log_invgamma(sigma_res**2, 0.003, 0.003)
     

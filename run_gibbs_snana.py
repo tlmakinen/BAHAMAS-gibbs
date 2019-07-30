@@ -59,7 +59,7 @@ def makePrior(cube, ndim=1, nparams=1):
     cube[6] = priors.gaussian(cube[6], .0796, .02)       # xstar
     cube[7] = priors.gaussian(cube[7], -19.3, 2.)        # mstar
     cube[8] = cube[8] * 1                                # omegam
-    cube[9] = cube[9] * -4                               # w   EDIT
+    cube[9] = cube[9] * 1                               # omegade   EDIT
     cube[10] = 0.3 + cube[10] * 0.7                      # h   EDIT
     return cube
 
@@ -87,8 +87,8 @@ cube = gibbs_library.makePriorCube(ndim)
 prior = makePrior(cube)
 
 
-niters = 2000  # iterations for gibbs
-niters_burn = 3
+niters = 5  # iterations for gibbs
+niters_burn = 10
 
 #niters = int(sys.argv[1]) if len(sys.argv) == 3 else niters
 #niters_burn = int(sys.argv[2]) if len(sys.argv) == 3 else niters_burn
@@ -96,8 +96,8 @@ niters_burn = 3
 
 t1 = time.time()
 # run the sampler to estimate posterior distributions
-gibbs_sampler.runGibbsFreeze(prior=prior, param=param, posterior_object_for_sample=posterior_object_for_sample, ndim=ndim, 
-                                                niters=niters, niters_burn=niters_burn, outdir='./gibbs_chains/', plot=True)
+gibbs_sampler.runGibbs(prior=prior, posterior_object_for_sample=posterior_object_for_sample, ndim=ndim, 
+                                                niters=niters, niters_burn=niters_burn, outdir='./gibbs_chains/', diagnose=False, snapshot=True)
 t2 = time.time()
 
 print('Gibbs Sampler Evaluation time = ', t2-t1)

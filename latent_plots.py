@@ -75,6 +75,7 @@ def plot_attributes(D, param, iter):
 # make diagnostic plot for posterior mean for 50 SN1a
 def plot_post_means(D_chain, datafname):
 
+    
     m_means = [] # vector of 50 type 1a SNe mean values for M in chain
     c_means = []
     x_means = []
@@ -91,7 +92,7 @@ def plot_post_means(D_chain, datafname):
             x_means.append(np.mean(D_chain[columns[i+1]]))
 
     # compare to JLA-like sims -- take only every 10th snia
-    data = pd.read_csv(datafname, sep='\s+', header=0)[::10]
+    data = pd.read_csv(datafname, sep='\s+', header=0)
 
     ndat = len(data)
     Zhel = data['z'].values
@@ -124,26 +125,41 @@ def plot_post_means(D_chain, datafname):
 
     plt.suptitle('Diagnostic Plot for Posterior Means', fontsize=32)
     # plot M vs M_true
-    ax0.scatter(np.array(m_means), np.array(M_true), color='r', marker = 'x', s=10)
+    ax0.scatter(np.array(m_means), np.array(M_true), 
+                            color='r', marker = 'x', s=10)
+    x = np.linspace(start=min(m_means)-0.2, stop = max(m_means)+0.2, num=50)
+    y = np.linspace(start=min(m_means)-0.2, stop = max(m_means)+0.2, num=50)
+    ax0.plot(x,y, linestyle='--', color='k', label='truth')
     ax0.set_xlabel('latent $M$', fontsize=28)
     ax0.set_ylabel('$M_{sim}$', fontsize=28)
     #ax0.legend(fontsize = 22, loc='upper left')
     # observed c vs simulated c
-    ax1.scatter(data['c'].values, c_true, color = 'b', marker = 'x', s=10, label='observed $\hat{c}$')
+    ax1.scatter(data['c'].values, c_true, 
+                    color = 'b', marker = 'x', s=10, label='observed $\hat{c}$')
     # latent c vs simulated c
-    ax1.scatter(c_means, c_true, color = 'r', marker = 'x', s=10, label='latent $c$')
+    ax1.scatter(c_means, c_true, color = 'r', 
+                    marker = 'x', s=10, label='latent $c$')
+    x = np.linspace(start=min(c_means), stop=max(c_means), num=50)
+    y = np.linspace(start=min(c_means), stop=max(c_means), num=50)
+    ax1.plot(x,y, linestyle='--', color='k', label='truth')  # plot truth line
     ax1.set_xlabel('$c$', fontsize=28)
     ax1.set_ylabel('$c_{sim}$', fontsize=28)
-    ax1.legend(fontsize = 22, loc='best')
+    ax1.legend(fontsize = 22, loc='lower right')
     # x1
-    ax2.scatter(data['x1'].values, c_true, color = 'b', marker = 'x', s=10, label='observed $\hat{x}_1$')
-    ax2.scatter(c_means, c_true, color = 'r', marker = 'x', s=10, label='latent $x_1$')
+    ax2.scatter(data['x1'].values, x1_true, 
+                    color = 'b', marker = 'x', s=10, label='observed $\hat{x}_1$')
+    ax2.scatter(x_means, x1_true, 
+                    color = 'r', marker = 'x', s=10, label='latent $x_1$')
+
+    x = np.linspace(start=min(x_means)-0.5, stop=max(x_means)+0.5, num=50)
+    y = np.linspace(start=min(x_means)-0.5, stop=max(x_means)+0.5, num=50)
+    ax2.plot(x,y, linestyle='--', color='k', label='truth')  # plot truth line
     ax2.set_xlabel('$x_1$', fontsize=28)
     ax2.set_ylabel('$x_{1,sim}$', fontsize=28)
-    ax2.legend(fontsize = 22, loc='upper left')
+    ax2.legend(fontsize = 22, loc='lower right')
     
-    plt.show()
+    #plt.show()
 
-    #plt.savefig(fname='posterior_diagnostic.png', dpi='figure')
+    plt.savefig(fname='posterior_diagnostic.png', dpi='figure')
 
 

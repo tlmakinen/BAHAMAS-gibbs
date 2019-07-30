@@ -26,12 +26,10 @@ is a logistic function = 1 / 1 + exp(- (gc * c_i + gx * x_i + gm * mB_i + eps))
 # old snls coeffs: -1.7380184749999987, 0.07955165160000005, -2.60483735, 62.15588654
 
 '''
-# read in logistic regression coefficients from output file
-coeffs = pd.read_csv('/c/Users/lucas/repositories/BAHAMAS/bahamas/logreg_coeffs.dat', sep=',')
-gc = coeffs['Intercept'].values[0]
-gx1 = coeffs['S2x1'].values[0]
-gmB = coeffs['S2mB'].values[0]
-eps = coeffs['Intercept'].values[0]
+# trained on DES sims
+eps,gmB,gc,gx1 = (29.96879778, -1.34334963,  0.45895811,  0.06703621)
+
+#gc,gx1,gmB,eps = (-1.7380184749999987, 0.07955165160000005, -2.60483735, 62.15588654)
 
 
 def log_indiv_selection_fn(phi_i, selection_param=(gc, gx1, gmB, eps)):
@@ -82,7 +80,10 @@ and P(z_i) is the expected supernovae distribution over redshift
 '''
 def supernova_redshift_pdf(z):
     #return 260.89028471 * z**1.73916657 / 123.658 # found via fitting to data
-    return 0.1812769830095274 * z**1.372629338228674 
+    #return 0.1812769830095274 * z**1.372629338228674 
+    s = (1 + z)**1.5   # from Dilday et al
+    #s = scipy.stats.norm.pdf(z, loc=0.116, scale=0.01794)
+    return s
 
 def redshift_marginalization_integrand(z, param, selection_param, cosmo_param):
     mu = cosmology.muz(cosmo_param, z, z) # TODO: Should the z's be the same?
@@ -117,4 +118,13 @@ L_Vincent \propto P(D | params) P(I | D) / P(I | params)
 '''
 def vincent_log_correction(param, selection_param, cosmo_param, phi, mu, ndat):
     log_numerator = [log_indiv_selection_fn(phi_i, selection_param) for phi_i in phi]
+    #print('lognumerator: ', np.sum(log_numerator))
+    #print('other part: ', ndat * log_redshift_marginalized_indiv_selection_fn(param, selection_param, cosmo_param))
     return np.sum(log_numerator) - ndat * log_redshift_marginalized_indiv_selection_fn(param, selection_param, cosmo_param)
+
+# return array of log(weights) to compare
+def weights(param, selection_param, cosmo_param, phi, mu, ndat):
+    log_numerator = [log_indiv_selection_fn(phi_i, selection_param) for phi_i in phi]
+    #print('lognumerator: ', np.sum(log_numerator))
+    #print('other part: ', ndat * log_redshift_marginalized_indiv_selection_fn(param, selection_param, cosmo_param))
+    return np.array(log_numerator) - log_redshift_marginalized_indiv_selection_fn(param, selection_param, cosmo_param)

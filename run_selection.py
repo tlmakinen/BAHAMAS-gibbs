@@ -10,11 +10,12 @@ import bahamas
 import priors
 
 
-from bahamas import gibbs_library, gibbs_sampler, get_stats
+from bahamas import gibbs_library, gibbs_sampler_selection, get_stats
 
 # create output directory
-if not os.path.exists('gibbs_chains'): 
-    os.mkdir('gibbs_chains')
+outdir = './gibbs_chains/'
+if not os.path.exists(outdir): 
+    os.mkdir(outdir)
 
 datafname = 'sel_lcparams.txt'
 
@@ -61,10 +62,10 @@ def makePrior(cube, ndim=1, nparams=1):
     cube[4] = cube[4] * 1                                # sigma_res (in likelihood code)
     #cube[4] = np.exp(priors.log_invgamma(cube[4], 0.003, 0.003))
     cube[5] = priors.gaussian(cube[5], 0, 1**2)          # cstar 
-    cube[6] = priors.gaussian(cube[6], 0., 10**2)       # xstar
+    cube[6] = priors.gaussian(cube[6], 0, 10**2)       # xstar
     cube[7] = priors.gaussian(cube[7], -19.3, 2**2)        # mstar
-    cube[8] = cube[8] * 2                                # omegam
-    cube[9] = cube[9] * 2                                # omegade   EDIT
+    cube[8] = cube[8] * 1                                # omegam
+    cube[9] = cube[9] * 1                                # omegade   EDIT
     cube[10] = 0.3 + cube[10] * 0.7                      # h   EDIT
     return cube
 
@@ -76,7 +77,7 @@ param = [0.13, 2.56,
 # Create Gibbs Posterior Model Object
 t1 = time.time()
 posterior_object_for_sample = gibbs_library.posteriorModel(J, sigmaCinv, log_sigmaCinv, data, ndat)
-log_post = posterior_object_for_sample.log_likelihood(param)
+log_post = posterior_object_for_sample.log_like_selection(param)
 t2 = time.time()
 print('log-likelihood near true theta = ', log_post)
 print('log-posterior evaluation time = ', t2-t1)
@@ -101,15 +102,15 @@ niters = int(sys.argv[3]) #if len(sys.argv) == 3 else niters
 
 t1 = time.time()
 # run the sampler to estimate posterior distributions
-n_cosmo, n_B = gibbs_sampler.runGibbs(prior=prior, posterior_object_for_sample=posterior_object_for_sample, ndim=ndim, 
-                                                niters=niters, niters_burn=niters_burn, outdir='./gibbs_chains/', diagnose=True, snapshot=True, datafname=datafname)
+n_cosmo, n_B = gibbs_sampler_selection.runGibbs(prior=prior, posterior_object_for_sample=posterior_object_for_sample, ndim=ndim, 
+                                                niters=niters, niters_burn=niters_burn, outdir=outdir, diagnose=True, snapshot=False, datafname=datafname)
 t2 = time.time()
 
 print('Gibbs Sampler Evaluation time = ', t2-t1)
 
 # save run stats for later
 import csv
-fname = './gibbs_chains/' + 'sampler_stats.csv'
+fname = outdir + 'sampler_stats.csv'
 with open(fname, 'w') as myfile:
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
         #for i in [[n_accept_cosmo/niters , n_accept_B/niters]]:
@@ -119,7 +120,7 @@ with open(fname, 'w') as myfile:
 from latent_plots import plot_post_means
 start = int(niters * 0.4)
 D = pd.read_csv('./gibbs_chains/D_latent.csv', sep=',', header=None)[start::10] # thin chain
-datafname = './data/lc_params.txt'
+datafname = 'sel_lcparams.txt'
 
 plot_post_means(D, datafname)
 

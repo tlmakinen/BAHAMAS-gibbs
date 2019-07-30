@@ -40,7 +40,7 @@ Rx = 1.0
 Rc = 0.1
 
 
-number_of_sne = 1000
+number_of_sne = 500
 
 
 print("Dipole Value: ", sys.argv[1])
@@ -255,8 +255,8 @@ def generate_sn1a():
 
     #Step, 1 draw latent redshift
     #z = np.random.normal(loc=Zcmb_mean, scale = Zcmb_std)
-    q = ss.powerlaw.rvs(2.5, loc=0, scale=2.3) # x = z+1 from Dilday et al
-    while q-1 <= 0:
+    q = ss.powerlaw.rvs(2.5, loc=0, scale=2.3) # q = z+1 from Dilday et al
+    while q-1 < 0:
         q = ss.powerlaw.rvs(2.5, loc=0, scale=2.3)
     z = q-1
     l = 0
@@ -287,7 +287,8 @@ def generate_sn1a():
             print(e)
     while(z<0):
         #resample - negative redshift sampled
-        z = np.random.normal(loc=Zcmb_mean, scale = Zcmb_std)
+        q = ss.powerlaw.rvs(2.5, loc=0, scale=2.3, size=1) # x = z+1 from Dilday et al
+        z = q-1
     #Step 2, compute mu_i using fiducial values
     mu_i = distance_modulus(z,true_omegam,true_omegade,l,b)
 
@@ -543,7 +544,7 @@ selected_simulated_data = simulated_data[mask]
 selected_covariance = generate_covariance_matrix(selected_simulated_data)
 
 
-np.savetxt(sys.argv[3],all_simulated_data, delimiter=' ',header = headers,comments="")
+np.savetxt(sys.argv[3],simulated_data, delimiter=' ',header = headers,comments="")
 np.savetxt(sys.argv[4], simulated_covariance, delimiter=' ')
 
 np.savetxt(sys.argv[6],selected_simulated_data, delimiter=' ',header = headers,comments="")
