@@ -21,7 +21,7 @@ from bahamas import latent_plots
 #                   cstar,xstar, mstar, omegam, omegade, h]
 # 
 # true values = [0.14, 3.2, np.exp(0.560333), np.exp(-2.3171), 0.1, 
-#                            -0.06, 0.0, -19.1, 0.3, -1., 0.7]
+#                            -0.06, 0.0, -19.3, 0.3, -1., 0.7]
 #---------------------------------------------------------
 #
 #  Gibb's Sampler Algorithm
@@ -99,7 +99,6 @@ def step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal, n_
     u = np.random.uniform(low=0, high=1)
         
     if (ln_acc_ratio > np.log(u)): 
-        #print('B candidate accepted')
         n_accept_B += 1
         # move on in sample space
         param = param_candidate
@@ -107,7 +106,6 @@ def step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal, n_
         log_correction = new_correction
 
     else:
-        #print('B candidate rejected')
         param[0:2] = B_param
         loglike = old_loglike
         log_correction = old_correction
@@ -140,7 +138,6 @@ def step_four(posterior_object_for_sample, D, param, ndim):
     for M in D[2::3]:
         var += (M - param[7])**2   # subtract mstar from each latent magnitude
 
-
     # sample sigma_res^2 from inverse gamma distribution
     sigma_res_sq = stats.invgamma.rvs(a=(ndat/2) + lamb, scale=(var/2) + lamb, size=1, random_state=None)[0]
     param[4] = np.sqrt(sigma_res_sq)
@@ -148,7 +145,7 @@ def step_four(posterior_object_for_sample, D, param, ndim):
     return param
 #----------------------------------------------------------
 # STEP 5
-# sample Rx
+# sample Rx ~INVGAMMA
 def step_five(posterior_object_for_sample, D, param, ndim):
     ndat = posterior_object_for_sample.ndat
     var = 0.0                        # sum up the square of the variance in each latent xi from the mean, x_*
@@ -163,15 +160,13 @@ def step_five(posterior_object_for_sample, D, param, ndim):
     return param
 #---------------------------------------------------------------------
 # STEP 6
-# sample Rc
+# sample Rc ~INVGAMMA
 def step_six(posterior_object_for_sample, D, param, ndim):   
     ndat = posterior_object_for_sample.ndat
     var = 0.0                        # sum up the square of the variance in each latent ci from the mean, c_*
     for c in D[0::3]:
         var += ((c - param[5])**2)   # subtract mstar from each latent magnitude
 
-        
-    # sample R_c^2 from inverse gamma distribution
     rc_sq_new = stats.invgamma.rvs(a=(ndat/2), scale=(var/2), size=1, random_state=None)[0]
     param[3] = np.sqrt(rc_sq_new)
 
@@ -188,7 +183,6 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     print('-------- BEGINNING BURN-IN CHAIN --------')
     print('burn in iterations: ', niters_burn)
 
-    prior = prior
     ndat = posterior_object_for_sample.ndat
     # set up empty D column-stacked latent variable array
     D = []
@@ -207,13 +201,13 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
 
     # create positive semi-definite covariance matrix for proposal distributions
     from sklearn import datasets
-    #cov_proposal_cosmo = datasets.make_spd_matrix(n_dim = 2, random_state=None) * 0.1  # EDIT: just sample omegam, omegade
-    cov_proposal_cosmo = np.array([[5, -0.02],
-                                    [-0.02, 1]]) * (1./80) * ((2.38**2)/2)  # estimated from previous inference
+    cov_proposal_cosmo = np.diag([np.random.rand()*5, np.random.rand()*1]) * (1./80) * ((2.38**2)/2) # EDIT: just sample omegam, omegade
+    #cov_proposal_cosmo = np.array([[5, -0.02],
+                            #        [-0.02, 1]]) * (1./80) * ((2.38**2)/2)  # estimated from previous inference
     # now compute proposal sigmas for SALT-2 params
-    #cov_proposal_B = datasets.make_spd_matrix(n_dim = 2, random_state=None) * 0.1
-    cov_proposal_B = np.array([[0.02, -0.023],
-                                [-0.023, 0.2]]) * (2.38**2 / 2)  # estimated from inference
+    cov_proposal_B = np.diag([np.random.rand()*0.02, np.random.rand()*0.2]) * (2.38**2 / 2)
+    #cov_proposal_B = np.array([[0.02, -0.023],
+                           #     [-0.023, 0.2]]) * (2.38**2 / 2)  # estimated from inference
     
     # We run our initial chains to get an estimate of the covariance between cosmo_params and cov between B_params    
     for iter in range(niters_burn):
@@ -227,9 +221,6 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
         entry_list.append(pd.Series(param6, index=chain_tab.columns))   # move on in sample space
         param = param6
 
-        #print(param)
-
-    #print('proposal estimation acceptance fraction = ', n_accept_cosmo / niters)
     # add to chains dataframe
     chain_tab = chain_tab.append(entry_list, ignore_index=True)
 
@@ -245,24 +236,18 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     B_proposal_cov = np.cov(np.matrix([alpha, beta]))       
     
     print('cosmo proposal covariance: ', cosmo_proposal_cov)
-    #print('B proposal cov: ', B_proposal_cov)
 
     print('-------- STARTING ACTUAL SAMPLER CHAIN -------- ')
-    #print('gibbs sampling for {} iterations'.format(niters))
-            # set up empty D column-stacked latent variable array
-    #D = []
-    #for i in range(ndat):
-        #D.append(np.zeros((1,3)))
+    print('gibbs sampling for {} iterations'.format(niters))
+
 
     # empty chain for parameter vectors
     chains = []
     loglike = 0
     
     D_chain = [] # for making diagnostic plot for subset of SN1a
-    # make prior cube
-    cube = gibbs_library.makePriorCube(ndim)
-    param = gibbs_library.vanillaPrior(cube)  # start with prior again
-
+    # start with prior again
+    param = prior
     # reset acceptance fraction
     n_accept_cosmo = 0.0
     n_accept_B = 0.0
@@ -295,10 +280,6 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
                 c = D[0::3]
                 x1 = D[1::3]
                 mB = D[2::3]
-                # take all SN1a
-                #c = c[::10]
-                #x1 = x1[::10]
-                #mB = mB[::10]
                 D_save = [] # thinned latent vector to be saved
                 for i in range(len(c)):
                     D_save.append(c[i])
@@ -307,7 +288,6 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
                 
                 D_chain.append(D_save) # add to trace chain
                 
-
             wr.writerow(param_loglike)    # write the parameter step as we go.
 
             if snapshot == True:

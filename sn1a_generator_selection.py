@@ -16,7 +16,7 @@ from bahamas import selection_effects as selection
 
 
 c_light = 299792.0 # Speed of light in km/s
-h = 0.72 # Hubble parameter
+h = 0.72 # Hubble parameter  # EDIT from 0.72
 H_0 = 100.0 # Hubble constant
 M_0 = -19.3 # Intrinsic magnitude
 sn1a_variance = 0.16
@@ -40,7 +40,7 @@ Rx = 1.0
 Rc = 0.1
 
 
-number_of_sne = 500
+number_of_sne = int(sys.argv[8])
 
 
 print("Dipole Value: ", sys.argv[1])
@@ -289,6 +289,7 @@ def generate_sn1a():
         #resample - negative redshift sampled
         q = ss.powerlaw.rvs(2.5, loc=0, scale=2.3, size=1) # x = z+1 from Dilday et al
         z = q-1
+        #z = np.random.normal(loc=Zcmb_mean, scale = Zcmb_std)
     #Step 2, compute mu_i using fiducial values
     mu_i = distance_modulus(z,true_omegam,true_omegade,l,b)
 
@@ -327,8 +328,8 @@ def generate_sn1a():
     true_x1 = x1_i
     true_c = c_i
 
-    #Step 7: Apply DES-like Selection cuts
-    phi_i = np.array([observed_c1, observed_x1, observed_mb])
+    #Step 7: Apply DES-like Selection cuts on LATENT values
+    phi_i = np.array([true_c, true_x1, true_mb])
     selection_prob_i = np.exp(selection.log_indiv_selection_fn(phi_i))
     selection_tag = 0
 

@@ -68,22 +68,6 @@ def makePriorCube(ndim):
         cube.append(np.random.uniform(0,1))
     return  cube
 
-# prior cube for each parameter. Takes as input uniform prior cube
-def vanillaPrior(cube, ndim=1, nparams=1):
-    cube[0] = np.random.uniform(0, 1)                    # alpha
-    cube[1] = np.random.uniform(0, 4)                    # beta
-    cube[2] = priors.log_uniform(cube[2], 10**-5, 10**2) # Rx
-    cube[3] = priors.log_uniform(cube[3], 10**-5, 10**2) # Rc (CHANGE FOR NON-SYMMETRIC)
-    cube[4] = cube[4] * 1                                # sigma_res (in likelihood code)
-    #cube[4] = np.exp(priors.log_invgamma(cube[4], 0.003, 0.003))
-    cube[5] = priors.gaussian(cube[5], 0, 1**2)          # cstar 
-    cube[6] = priors.gaussian(cube[6], 0., 10**2)       # xstar
-    cube[7] = priors.gaussian(cube[7], -19.3, 2**2)        # mstar
-    cube[8] = cube[8] * 2                                # omegam
-    cube[9] = cube[9] * 2                                # omegade   EDIT
-    cube[10] = 0.3 + cube[10] * 0.7                      # h   EDIT
-    return cube
-
 
 # Create proposal gaussian distribution for MCMC steps, with constraints from priors
 def gaussianProposal(mean, cov):
@@ -206,15 +190,7 @@ class posteriorModel(object):
    
     def log_likelihood(self, param):
         # Impose prior constraints:
-        if (param[8] > 2.) or (param[8] < 0.): # omegam
-            return -np.inf
-        if (param[9] > 2.) or (param[9] < 0.): # omegade
-            return -np.inf
-        if (param[10] < 0.3) or (param[10] > 1.): # h
-            return -np.inf
-        if (param[0] > 1.) or (param[0] < 0.): # alpha
-            return -np.inf
-        if (param[1] > 4.) or (param[1] < 0.): # beta
+        if priors.constraints(param) is True:
             return -np.inf
         
         cosmo_param = param[8:]
@@ -238,8 +214,14 @@ class posteriorModel(object):
         alpha, beta, rx, rc, sigma_res = param[:5]
         cstar, xstar, mstar = param[5:8]    # population means of color, stretch, intrinsic magnitude (LATENTS)
         
-        # put matrices together
-        #A = codeforA(ndat, alpha, beta)
+        # priors
+        sigmacstar = 1.0
+        sigmaxstar =10.0
+        sigmamo =2.0
+        Mm = -19.3
+
+        sigma0inv = np.diag([1./(sigmacstar)**2,1./(sigmaxstar)**2,1./(sigmamo)**2])
+        bm = np.array([0,0,Mm])
         
         sigmaDinv = codeforsigmaDinv(ndat, sigma_res, rc, rx)
         sigmaAinv = codeforsigmaAinv(sigmaCinv, sigmaDinv, alpha, beta)
@@ -268,13 +250,14 @@ class posteriorModel(object):
         chi1 = np.einsum('i,ij,j', np.array(X0), sigmaCinv, np.array(X0))
         chi2 = Y0.T * sigmaAinv * Y0
         chi3 = Ystar.T * sigmaDinv * Ystar
-        chisquare =  chi1 - chi2 + chi3
+        chi4 = 0 #np.einsum('i,ij,j',bm,sigma0inv,bm)
+        chisquare =  chi1 - chi2 + chi3 + chi4
         chisquare = np.array(chisquare)[0,0]
 
         #logdetsigmaPinv = -2 * ndat * np.log(rc * rx * sigma_res)
         parta = self.log_sigmaCinv - 2 * ndat * np.log(rc * rx * sigma_res) - 2 * np.sum(np.log(cho_factorized_sigmaAinv[0].diagonal()))
 
-
+        partb = 0 # np.linalg.slogdet(sigma0inv)[1]
         # addition of low z anchor
         lz = 0.01
         sigma_lz = 0.0135
@@ -286,7 +269,7 @@ class posteriorModel(object):
         # INVGAMMA(0.003,0.003) prior distribution on sigma_res^2
         res_prior = log_invgamma(sigma_res**2, 0.003, 0.003)
     
-        return -0.5 * (chisquare - parta + 3 * ndat * np.log(2 * np.pi)) + anchor + res_prior
+        return -0.5 * (chisquare - parta - partb + 3 * ndat * np.log(2 * np.pi)) + anchor + res_prior
 
     def log_like_selection(self, param):
         J = self.J
@@ -295,18 +278,9 @@ class posteriorModel(object):
         data = self.data
         ndat = self.ndat
 
-        # impose prior constraints
-        if (param[8] > 2.) or (param[8] < 0.): # omegam
+        # Impose prior constraints:
+        if priors.constraints(param) is True:
             return -np.inf
-        if (param[9] > 2.) or (param[9] < 0.): # omegade
-            return -np.inf
-        if (param[10] < 0.3) or (param[10] > 1.): # h
-            return -np.inf
-        if (param[0] > 1.) or (param[0] < 0.): # alpha
-            return -np.inf
-        if (param[1] > 4.) or (param[1] < 0.): # beta
-            return -np.inf
-
 
         return bahamas.vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, param, data, ndat)
 
@@ -317,17 +291,8 @@ class posteriorModel(object):
         data = self.data
         ndat = self.ndat
 
-        # impose prior constraints
-        if (param[8] > 2.) or (param[8] < 0.): # omegam
+        # Impose prior constraints:
+        if priors.constraints(param) is True:
             return -np.inf
-        if (param[9] > 2.) or (param[9] < 0.): # omegade
-            return -np.inf
-        if (param[10] < 0.3) or (param[10] > 1.): # h
-            return -np.inf
-        if (param[0] > 1.) or (param[0] < 0.): # alpha
-            return -np.inf
-        if (param[1] > 4.) or (param[1] < 0.): # beta
-            return -np.inf
-
 
         return bahamas.vincent_log_integral(param, data, ndat)
