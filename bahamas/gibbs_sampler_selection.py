@@ -34,8 +34,8 @@ def step_one(posterior_object_for_sample, loglike, param, ndim, cov_proposal, n_
 
 
     # Evaluate likelihood with original parameters for comparison
-    old_loglike = posterior_object_for_sample.log_like_selection(param)
-    old_correction = posterior_object_for_sample.log_correction(param)
+    old_loglike = loglike
+    #old_correction = posterior_object_for_sample.log_correction(param)
     cosmo_param = param[8:10]            # EDIT: just sample omegam, omegade
     # --------------------------------------------------
     # MH sampler STEP from posterior  
@@ -46,7 +46,7 @@ def step_one(posterior_object_for_sample, loglike, param, ndim, cov_proposal, n_
     # compute new log likelihood with param candidates
     new_loglike = posterior_object_for_sample.log_like_selection(param_candidate)
     # compute new log-correction for selection effects
-    new_correction = posterior_object_for_sample.log_correction(param_candidate)
+    #new_correction = posterior_object_for_sample.log_correction(param_candidate)
 
     # if outside prior bounds, re-sample cosmo params from proposal distribution
     while np.isneginf(new_loglike):
@@ -63,14 +63,14 @@ def step_one(posterior_object_for_sample, loglike, param, ndim, cov_proposal, n_
         n_accept += 1                       # for computing acceptance fraction for cosmo params
         param = param_candidate
         loglike = new_loglike
-        log_correction = new_correction
+        #log_correction = new_correction
         
     else:
         param[8:10] = cosmo_param
         loglike = old_loglike
-        log_correction = old_correction
+        #log_correction = old_correction
 
-    return param,n_accept,loglike,log_correction
+    return param,n_accept,loglike #,log_correction
 
 # -------------------------------------------------------------
 # STEP 2
@@ -78,14 +78,14 @@ def step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal, n_
 
     # compute old log likelihood before we fiddle with params
     old_loglike = loglike 
-    old_correction = posterior_object_for_sample.log_correction(param)
+    #old_correction = posterior_object_for_sample.log_correction(param)
     B_param = param[:2]    
 
     param_candidate = param                        # copy in our current big parameter vector
     param_candidate[0:2] = list(np.random.multivariate_normal(B_param, cov_proposal))
     # if we fall outside the prior bounds (in gibbs_library.py), MH-draw again:
     new_loglike = posterior_object_for_sample.log_like_selection(param_candidate)
-    new_correction = posterior_object_for_sample.log_correction(param_candidate)
+    #new_correction = posterior_object_for_sample.log_correction(param_candidate)
 
     while np.isneginf(new_loglike):
         param_candidate[0:2] = list(np.random.multivariate_normal(mean=B_param, cov=cov_proposal))
@@ -103,14 +103,14 @@ def step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal, n_
         # move on in sample space
         param = param_candidate
         loglike = new_loglike
-        log_correction = new_correction
+        #log_correction = new_correction
 
     else:
         param[0:2] = B_param
         loglike = old_loglike
-        log_correction = old_correction
+        #log_correction = old_correction
 
-    return param,n_accept_B,loglike,log_correction
+    return param,n_accept_B,loglike #,log_correction
         
 #------------------------------------------------------------------------------
 # STEP 3
@@ -143,6 +143,7 @@ def step_three(posterior_object_for_sample, loglike, D, param, ndim, n_accept_ds
         # move on in sample space
         param = param_candidate
         loglike = new_loglike
+        print('dstar accepted')
 
     else:
         param = param
@@ -189,6 +190,7 @@ def step_four(posterior_object_for_sample, loglike, D, param, ndim, n_accept_sig
         # move on in sample space
         param = param_candidate
         loglike = new_loglike
+        print('sigmares accepted')
 
     else:
         param = param
@@ -226,6 +228,7 @@ def step_five(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rx)
         # move on in sample space
         param = param_candidate
         loglike = new_loglike
+        print('rx accepted')
 
     else:
         param = param
@@ -260,6 +263,7 @@ def step_six(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rc):
         # move on in sample space
         param = param_candidate
         loglike = new_loglike
+        'rc accepted'
 
     else:
         param = param
@@ -314,12 +318,13 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     # We run our initial chains to get an estimate of the covariance between cosmo_params and cov between B_params    
     for iter in range(niters_burn):
 
-        param1, n_accept_cosmo, loglike, log_corr = step_one(posterior_object_for_sample, loglike, param, ndim, cov_proposal_cosmo, n_accept_cosmo)
-        param2, n_accept_B,loglike, log_corr = step_two(posterior_object_for_sample, loglike, param1, ndim, cov_proposal_B, n_accept_B)
-        D,param3, n_accept_dstar, loglike = step_three(posterior_object_for_sample, loglike, D, param2, ndim, n_accept_dstar)               # update D
+        param1, n_accept_cosmo, loglike    = step_one(posterior_object_for_sample, loglike, param, ndim, cov_proposal_cosmo, n_accept_cosmo)
+        param2, n_accept_B,loglike         = step_two(posterior_object_for_sample, loglike, param1, ndim, cov_proposal_B, n_accept_B)
+        D,param3, n_accept_dstar, loglike  = step_three(posterior_object_for_sample, loglike, D, param2, ndim, n_accept_dstar)               # update D
         param4, n_accept_sigmares, loglike = step_four(posterior_object_for_sample, loglike, D, param3, ndim, n_accept_sigmares) 
-        param5, n_accept_rx, loglike = step_five(posterior_object_for_sample, loglike, D, param4, ndim, n_accept_rx)
-        param6, n_accept_rc, loglike = step_six(posterior_object_for_sample, loglike, D, param5, ndim, n_accept_rc)
+        param5, n_accept_rx, loglike       = step_five(posterior_object_for_sample, loglike, D, param4, ndim, n_accept_rx)
+        param6, n_accept_rc, loglike       = step_six(posterior_object_for_sample, loglike, D, param5, ndim, n_accept_rc)
+        
         entry_list.append(pd.Series(param6, index=chain_tab.columns))   # move on in sample space
         param = param6
 
@@ -345,11 +350,13 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
 
     # empty chain for parameter vectors
     chains = []
-    loglike = 0
+
     
     D_chain = [] # for making diagnostic plot for subset of SN1a
     # start with prior again
     param = prior
+    # re-calculate log-like
+    loglike = posterior_object_for_sample.log_like_selection(param)
     # reset acceptance fraction
     n_accept_cosmo = 0.0      # step 1
     n_accept_B = 0.0          # step 2
@@ -370,18 +377,17 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
             
         for iter in range(niters):
 
-            param,n_accept_cosmo,loglike,log_correction = step_one(posterior_object_for_sample, loglike, param, ndim, cosmo_proposal_cov, n_accept_cosmo)
-            param,n_accept_B,loglike,log_correction = step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal=B_proposal_cov, n_accept_B=n_accept_B)
-            D,param,n_accept_dstar,loglike = step_three(posterior_object_for_sample, loglike, D, param, ndim, n_accept_dstar) # update D
+            param,n_accept_cosmo,loglike    = step_one(posterior_object_for_sample, loglike, param, ndim, cosmo_proposal_cov, n_accept_cosmo)
+            param,n_accept_B,loglike        = step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal=B_proposal_cov, n_accept_B=n_accept_B)
+            D,param,n_accept_dstar,loglike  = step_three(posterior_object_for_sample, loglike, D, param, ndim, n_accept_dstar) # update D
             param,n_accept_sigmares,loglike = step_four(posterior_object_for_sample, loglike, D, param, ndim, n_accept_sigmares) 
-            param,n_accept_rx,loglike = step_five(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rx)
-            param,n_accept_rc,loglike = step_six(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rc)
+            param,n_accept_rx,loglike       = step_five(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rx)
+            param,n_accept_rc,loglike       = step_six(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rc)
 
-            loglike = [loglike]
-            param_loglike = param + loglike + [log_correction]
+            param_loglike = param + [loglike]
             chains.append(np.asarray(param_loglike))   # move on in sample space
             
-            if iter % 10 == 0:
+            if iter % 1 == 0:
                 print('current parameter vector \nand likelihood for iter {}: '.format(iter), param_loglike)
             if diagnose == True:
                 # latent values from chain
@@ -403,6 +409,7 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
                     latent_plots.plot_attributes(D, param, iter)
 
     acc_numbs =  [n_accept_cosmo, n_accept_B, n_accept_dstar, n_accept_sigmares, n_accept_rx, n_accept_rc]
+    print('acc numbs: ', acc_numbs)
     acceptance_fracs = []
     acceptance_fracs = [i / niters for i in acc_numbs]
 
