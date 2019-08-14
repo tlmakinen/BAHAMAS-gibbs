@@ -34,7 +34,7 @@ def vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, param, data, ndat):
     #selection_param = param[8:12]
     #cosmo_param = param[12:15]
     #param = param[0:8]
-    
+   
     # selection params: gc, gx1, gmb, eps
     selection_param = [0.45895811, 0.06703621, -1.34334963, 29.96879778]
     cosmo_param = param[8:10] # EDIT

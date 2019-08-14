@@ -78,7 +78,7 @@ t1 = time.time()
 posterior_object_for_sample = gibbs_library.posteriorModel(J, sigmaCinv, log_sigmaCinv, data, ndat)
 log_post = posterior_object_for_sample.log_like_selection(param)
 t2 = time.time()
-print('log-likelihood near true theta = ', log_post)
+print('log-posterior near true theta = ', log_post)
 print('log-posterior evaluation time = ', t2-t1)
 
 
@@ -87,7 +87,7 @@ cube = gibbs_library.makePriorCube(ndim)
 # start off params with priors
 prior = makePrior(cube)
 
-print('prior = ', prior)
+print('param0 = ', prior)
 
 #niters = 2  # iterations for gibbs
 #niters_burn = 3
@@ -109,10 +109,12 @@ fname = outdir + 'sampler_stats.csv'
 labels = ['step_{}'.format(i+1) for i in range(6)]
 labels += ['eval time']
 
+summary_list = acc_fracs + [t2-t1]
+
 with open(fname, 'w') as myfile:
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
     wr.writerow(labels)
-    wr.writerow([acc_fracs, t2-t1])
+    wr.writerow(summary_list)
 
 # make latent diagnostic posterior plot
 from latent_plots import plot_post_means

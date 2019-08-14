@@ -74,7 +74,7 @@ true_param = [0.13, 2.56,
 #print('vanilla LL at true params: ', bahamas.vanilla_log_likelihood(J, sigmaCinv, log_sigmaCinv, true_param, data, ndat))
 #print('corrected LL at true param: ', bahamas.vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, true_param, data, ndat))
 
-const = (bahamas.vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, true_param, data, ndat)) - (bahamas.vanilla_log_likelihood(J, sigmaCinv, log_sigmaCinv, true_param, data, ndat))
+const = (bahamas.vincent_log_integral(true_param, data, ndat))  # set offset to the log-correction at true theta
 
 def compute_weight(J, sigmaCinv, log_sigmaCinv, param, data, ndat, vanilla_log_like, const):
     corrected_log_like = bahamas.vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, param, data, ndat)
@@ -101,15 +101,16 @@ for s in range(len(post_params)):
     param_i = list(post_params.iloc[s])
     vanilla_ll = (vanilla_loglikes.values)[s]
     corr_ll = bahamas.vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, param_i, data, ndat)
-    #corr.append(corr_ll)
+    
     w_i = compute_weight(J, sigmaCinv, log_sigmaCinv, param_i, data, ndat, vanilla_ll, const)
+    print('new weight: ', w_i)
     weights.append(w_i)
     weight_param.append((weights[s] * np.array(param_i)))  # unnormalized weighted param vector
 
 # remove any infs and put in a dummy value
-for w in weights:
-    if np.isinf(w):
-        w = 70051 
+#for w in weights:
+    #if np.isinf(w):
+        #w = 70051 
 
 # Now, normalize weights by maximum so that they're easy to work with
 
