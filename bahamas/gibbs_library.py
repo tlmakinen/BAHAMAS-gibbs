@@ -40,7 +40,7 @@ def times_Atranspose_from_left(X, alpha, beta):
 
 # Population variance-covariance matrix of latents in D vector
 # TODO: Toggle for nonsymmetric color distribution?
-def codeforsigmaDinv(ndat, sigma_res, rc, rx):
+def codeforsigmaPinv(ndat, sigma_res, rc, rx):
     Sinv = np.diag([1 / rc**2, 1 / rx**2, 1 / sigma_res**2])
     return scipy.linalg.block_diag(*([Sinv,]*ndat))
 
@@ -49,10 +49,10 @@ def codeforsigmaDstar(cstar, xstar, mstar):
     return np.matrix([[cstar], [xstar], [mstar]])
 
 # Sigma_A matrix: combines observed variances in sigmaCinv
-# (uncertainties) and population-level latent variable-covariances
-def codeforsigmaAinv(sigmaCinv, sigmaDinv, alpha, beta):
+# (uncertainties) and population-level latent variance-covariances
+def codeforsigmaAinv(sigmaCinv, sigmaPinv, alpha, beta):
     sigmaC_times_A = times_A_from_right(sigmaCinv, alpha, beta)
-    return times_Atranspose_from_left(sigmaC_times_A, alpha, beta) + sigmaDinv
+    return times_Atranspose_from_left(sigmaC_times_A, alpha, beta) + sigmaPinv
 
 # for prior distributions
 def log_invgamma(x, a, b):
@@ -130,12 +130,12 @@ class posteriorModel(object):
         alpha, beta, rx, rc, sigma_res = param[:5]
         cstar, xstar, mstar = param[5:8]    # population means of color, stretch, intrinsic magnitude (LATENTS)
 
-        sigmaDinv = codeforsigmaDinv(ndat, sigma_res, rc, rx)
+        sigmaPinv = codeforsigmaPinv(ndat, sigma_res, rc, rx)
 
 
         # put matrices together       
 
-        sigmaAinv = codeforsigmaAinv(sigmaCinv, sigmaDinv, alpha, beta)
+        sigmaAinv = codeforsigmaAinv(sigmaCinv, sigmaPinv, alpha, beta)
         sigmaA = np.linalg.inv(sigmaAinv)
         
         # ---- Vectors ---- #
@@ -165,15 +165,15 @@ class posteriorModel(object):
 
 
         cho_factorized_sigmaAinv = scipy.linalg.cho_factor(sigmaAinv, lower=True)
-        muA = np.matrix(scipy.linalg.cho_solve(cho_factorized_sigmaAinv, Delta + sigmaDinv * Ystar))  # muA
+        muA = np.matrix(scipy.linalg.cho_solve(cho_factorized_sigmaAinv, Delta + sigmaPinv * Ystar))  # muA
           
 
 
-        sigmakinv = - np.einsum('ij,ik,kl',J,sigmaDinv,np.linalg.solve(
+        sigmakinv = - np.einsum('ij,ik,kl',J,sigmaPinv,np.linalg.solve(
                  sigmaAinv,
-                 np.dot(sigmaDinv,J)
+                 np.dot(sigmaPinv,J)
                 )) \
-                    + ndat*sigmaDinv[:3,:3] + sigma0inv
+                    + ndat*sigmaPinv[:3,:3] + sigma0inv
 
         sigmak = np.linalg.inv(sigmakinv)
 
@@ -182,7 +182,7 @@ class posteriorModel(object):
 
         sigmaA_times_Delta = np.linalg.solve(sigmaAinv,Delta)
         kstar = np.dot(
-            sigmak, np.einsum('ji,jk,k...',J,sigmaDinv,sigmaA_times_Delta)[0] 
+            sigmak, np.einsum('ji,jk,k...',J,sigmaPinv,sigmaA_times_Delta)[0] 
                     + np.dot(sigma0inv,bm))
 
         return kstar, np.linalg.inv(sigmakinv), muA, sigmaA
@@ -223,8 +223,8 @@ class posteriorModel(object):
         sigma0inv = np.diag([1./(sigmacstar)**2,1./(sigmaxstar)**2,1./(sigmamo)**2])
         bm = np.array([0,0,Mm])
         
-        sigmaDinv = codeforsigmaDinv(ndat, sigma_res, rc, rx)
-        sigmaAinv = codeforsigmaAinv(sigmaCinv, sigmaDinv, alpha, beta)
+        sigmaPinv = codeforsigmaPinv(ndat, sigma_res, rc, rx)
+        sigmaAinv = codeforsigmaAinv(sigmaCinv, sigmaPinv, alpha, beta)
 
         # ---- Vectors ---- #
         # data vector D0
@@ -244,12 +244,12 @@ class posteriorModel(object):
         # Lower triangular factorized sigmaA
         cho_factorized_sigmaAinv = scipy.linalg.cho_factor(sigmaAinv, lower=True)
     
-        Y0 = np.matrix(scipy.linalg.cho_solve(cho_factorized_sigmaAinv, Delta + sigmaDinv * Ystar))  # muA
+        Y0 = np.matrix(scipy.linalg.cho_solve(cho_factorized_sigmaAinv, Delta + sigmaPinv * Ystar))  # muA
 
 
         chi1 = np.einsum('i,ij,j', np.array(X0), sigmaCinv, np.array(X0))
         chi2 = Y0.T * sigmaAinv * Y0
-        chi3 = Ystar.T * sigmaDinv * Ystar
+        chi3 = Ystar.T * sigmaPinv * Ystar
         chi4 = 0 #np.einsum('i,ij,j',bm,sigma0inv,bm)
         chisquare =  chi1 - chi2 + chi3 + chi4
         chisquare = np.array(chisquare)[0,0]

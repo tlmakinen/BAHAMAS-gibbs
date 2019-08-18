@@ -115,9 +115,9 @@ def step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal, n_
 #------------------------------------------------------------------------------
 # STEP 3
 # sample D, (latent-layer data) and Dstar (SNIa population means) via MH
-def step_three(posterior_object_for_sample, loglike, D, param, ndim, n_accept_dstar):
+def step_three(posterior_object_for_sample, loglike, D, param, ndim, cov_proposal_p, n_accept_dstar):
     # get latent attributes from posterior object
-    kstar,sigmak, muA,sigmaA = posterior_object_for_sample.latent_attributes(param)  
+    #kstar,sigmak, muA,sigmaA = posterior_object_for_sample.latent_attributes(param)  
 
     # old log-likelihood
     old_loglike = loglike
@@ -125,7 +125,7 @@ def step_three(posterior_object_for_sample, loglike, D, param, ndim, n_accept_ds
     param_candidate = param
 
     # sample new Dstar vector
-    param_candidate[5:8] = np.random.multivariate_normal(mean=(kstar), cov=sigmak)   # generate new population mean vector
+    param_candidate[5:8] = np.random.multivariate_normal(mean=(param[5:8]), cov=cov_proposal_p)   # generate new population mean vector
     
 
     # MH-sample population mean vector (Dstar) using corrected posterior
@@ -160,7 +160,7 @@ def step_three(posterior_object_for_sample, loglike, D, param, ndim, n_accept_ds
 #-------------------------------------------------------------------------------------
 # STEP 4
 # sample sigma_res
-def step_four(posterior_object_for_sample, loglike, D, param, ndim, n_accept_sigmares):
+def step_four(posterior_object_for_sample, loglike, D, param, ndim, cov_proposal_sr, n_accept_sigmares):
 
     param_candidate = param
     # compute old likelihood
@@ -174,8 +174,8 @@ def step_four(posterior_object_for_sample, loglike, D, param, ndim, n_accept_sig
 
     
     # sample sigma_res^2 from inverse gamma distribution
-    sigma_res_sq = stats.invgamma.rvs(a=(ndat/2) + lamb, scale=(var/2) + lamb, size=1, random_state=None)[0]
-    param_candidate[4] = np.sqrt(sigma_res_sq)
+    sigma_res =  np.random.normal(loc=(param[4]), scale=cov_proposal_sr)
+    param_candidate[4] = sigma_res
 
     new_loglike = posterior_object_for_sample.log_like_selection(param_candidate)
 
@@ -200,20 +200,21 @@ def step_four(posterior_object_for_sample, loglike, D, param, ndim, n_accept_sig
 #----------------------------------------------------------
 # STEP 5
 # sample Rx ~INVGAMMA
-def step_five(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rx):
+def step_five(posterior_object_for_sample, loglike, D, param, ndim, cov_proposal_rx, n_accept_rx):
     old_loglike = loglike
 
     param_candidate = param
 
     ndat = posterior_object_for_sample.ndat
     var = 0.0                        # sum up the square of the variance in each latent xi from the mean, x_*
-    for x in D[1::3]:
-        var += ((x - param[6])**2)   # subtract xstar from each latent magnitude
+    #for x in D[1::3]:
+    #    var += ((x - param[6])**2)   # subtract xstar from each latent magnitude
 
 
     # sample R_x^2 from inverse gamma distribution
-    rx_sq_new = stats.invgamma.rvs(a=(ndat/2), scale=(var/2), size=1, random_state=None)[0]
-    param_candidate[2] = np.sqrt(rx_sq_new)
+    rx_new =  np.random.normal(loc=(param[2]), scale=cov_proposal_rx)
+    #rx_sq_new =  stats.invgamma.rvs(a=(ndat/2), scale=(var/2), size=1, random_state=None)[0]
+    param_candidate[2] = rx_new
 
     new_loglike = posterior_object_for_sample.log_like_selection(param_candidate)
 
@@ -237,18 +238,18 @@ def step_five(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rx)
 #---------------------------------------------------------------------
 # STEP 6
 # sample Rc ~INVGAMMA
-def step_six(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rc):   
+def step_six(posterior_object_for_sample, loglike, D, param, ndim, cov_proposal_rc, n_accept_rc):   
     old_loglike = loglike
 
     param_candidate = param
 
     ndat = posterior_object_for_sample.ndat
     var = 0.0                        # sum up the square of the variance in each latent ci from the mean, c_*
-    for c in D[0::3]:
-        var += ((c - param[5])**2)   # subtract mstar from each latent magnitude
+    #for c in D[0::3]:
+    #    var += ((c - param[5])**2)   # subtract mstar from each latent magnitude
 
-    rc_sq_new = stats.invgamma.rvs(a=(ndat/2), scale=(var/2), size=1, random_state=None)[0]
-    param_candidate[3] = np.sqrt(rc_sq_new)
+    rc_new =  np.random.normal(loc=(param[3]), scale=cov_proposal_rc)
+    param_candidate[3] = rc_new
 
     new_loglike = posterior_object_for_sample.log_like_selection(param_candidate)
 
@@ -277,10 +278,7 @@ def step_six(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rc):
 #---------------------------------------------------------------------
 # Sampler runs for niters_burn iterations to gain an estimate of cosmo and SALT-II covariance
 
-def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outdir, snapshot=False, datafname=None, diagnose=False):
-    print('-------- BEGINNING BURN-IN CHAIN --------')
-    print('burn in iterations: ', niters_burn)
-
+def runGibbs(prior, posterior_object_for_sample, ndim, niters, outdir, snapshot=False, datafname=None, diagnose=False):
     ndat = posterior_object_for_sample.ndat
     # set up empty D column-stacked latent variable array
     D = []
@@ -302,62 +300,22 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     n_accept_rx = 0.0         # step 5
     n_accept_rc = 0.0         # step 6
 
-    chain_tab = pd.DataFrame(columns=['alpha', 'beta', 'rx', 'rc', 'sigma_res', 'cstar', 'xstar', 'mstar', 'omegam', 'w', 'h'])
-    entry_list = []
-
-    # create positive semi-definite covariance matrix for proposal distributions
-    #from sklearn import datasets
-    #cov_proposal_cosmo = np.diag([np.random.rand()*5, np.random.rand()*1]) * (1./80) * ((2.38**2)/2) # EDIT: just sample omegam, omegade
-    #cov_proposal_cosmo = np.array([[5, -0.02],
-                            #        [-0.02, 1]]) * (1./80) * ((2.38**2)/2)  # estimated from previous inference
-    # now compute proposal sigmas for SALT-2 params
-    #cov_proposal_B = np.diag([np.random.rand()*0.02, np.random.rand()*0.2]) * (2.38**2 / 2)
-    #cov_proposal_B = np.array([[0.02, -0.023],
-                           #     [-0.023, 0.2]]) * (2.38**2 / 2)  # estimated from inference
-
-    # Estimated from MultiNest runs
+    # define jump proposals
     cov_proposal_cosmo = np.array([[0.00862212, 0.01333633],
-                                [0.01333633, 0.02501767]]) * ((2.38**2)/2) # EDIT: just sample omegam, omegade
+                                [0.01333633, 0.02501767]]) * ((2.38**2)/2) * 10 # EDIT: just sample omegam, omegade
 
     cov_proposal_B = np.array([[ 7.51338227e-05, -7.81496651e-07],
-                             [-7.81496651e-07,  7.63401552e-03]]) * (2.38**2 / 2)
-    
-    # We run our initial chains to get an estimate of the covariance between cosmo_params and cov between B_params    
-    for iter in range(niters_burn):
+                             [-7.81496651e-07,  7.63401552e-03]]) * (2.38**2 / 2) * 10
 
-        param1, n_accept_cosmo, loglike    = step_one(posterior_object_for_sample, loglike, param, ndim, cov_proposal_cosmo, n_accept_cosmo)
-        param2, n_accept_B,loglike         = step_two(posterior_object_for_sample, loglike, param1, ndim, cov_proposal_B, n_accept_B)
-        D,param3, n_accept_dstar, loglike  = step_three(posterior_object_for_sample, loglike, D, param2, ndim, n_accept_dstar)               # update D
-        param4, n_accept_sigmares, loglike = step_four(posterior_object_for_sample, loglike, D, param3, ndim, n_accept_sigmares) 
-        param5, n_accept_rx, loglike       = step_five(posterior_object_for_sample, loglike, D, param4, ndim, n_accept_rx)
-        param6, n_accept_rc, loglike       = step_six(posterior_object_for_sample, loglike, D, param5, ndim, n_accept_rc)
-        
-        entry_list.append(pd.Series(param6, index=chain_tab.columns))   # move on in sample space
-        param = param6
+    cov_proposal_p = np.array([[ 2.26136092e-05,  4.55322597e-06, -8.29879371e-06],
+                              [ 4.55322597e-06,  2.29976669e-03,  3.91206305e-05],
+                                 [-8.29879371e-06,  3.91206305e-05,  4.14424789e-04]]) * (2.38**2 / 3) * 10
 
-    # add to chains dataframe
-    chain_tab = chain_tab.append(entry_list, ignore_index=True)
+    cov_proposal_sr = 0.00013154 * (2.38**2) * 10
+    cov_proposal_rx = 0.00119617 * (2.38**2) * 10
+    cov_proposal_rc = 1.27621525e-05 * (2.38**2) * 10
 
-    # compute proposal sigmas for C and B:
-    omegam = chain_tab['omegam'].values
-    w = chain_tab['w'].values
-    h = chain_tab['h'].values
 
-    alpha = chain_tab['alpha'].values
-    beta = chain_tab['beta'].values
-
-    #cosmo_proposal_cov = ((2.38)**2 / 2) * np.cov((chain_tab['omegam'], chain_tab['w']))   # EDIT: just sample omegam, omegade
-    #B_proposal_cov = ((2.38)**2 / 2) * np.cov((chain_tab['alpha'], chain_tab['beta']))       
-
-    # estimated from multinest
-
-    cosmo_proposal_cov = np.array([[0.00862212, 0.01333633],
-                                [0.01333633, 0.02501767]]) * ((2.38**2)/2) # EDIT: just sample omegam, omegade
-
-    B_proposal_cov = np.array([[ 7.51338227e-05, -7.81496651e-07],
-                             [-7.81496651e-07,  7.63401552e-03]]) * (2.38**2 / 2)
-    
-    print('cosmo proposal covariance: ', cosmo_proposal_cov)
 
     print('-------- STARTING ACTUAL SAMPLER CHAIN -------- ')
     print('gibbs sampling for {} iterations'.format(niters))
@@ -369,16 +327,6 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     
     D_chain = [] # for making diagnostic plot for subset of SN1a
     # start with prior again
-    param = prior
-    # re-calculate log-like
-    loglike = posterior_object_for_sample.log_like_selection(param)
-    # reset acceptance fraction
-    n_accept_cosmo = 0.0      # step 1
-    n_accept_B = 0.0          # step 2
-    n_accept_dstar = 0.0      # step 3
-    n_accept_sigmares = 0.0   # step 4   
-    n_accept_rx = 0.0         # step 5
-    n_accept_rc = 0.0         # step 6
 
 
     true_param = [0.13, 2.56, 
@@ -390,14 +338,16 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     with open(fname, 'w') as myfile:
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
             
+            
+
         for iter in range(niters):
 
-            param,n_accept_cosmo,loglike    = step_one(posterior_object_for_sample, loglike, param, ndim, cosmo_proposal_cov, n_accept_cosmo)
-            param,n_accept_B,loglike        = step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal=B_proposal_cov, n_accept_B=n_accept_B)
-            D,param,n_accept_dstar,loglike  = step_three(posterior_object_for_sample, loglike, D, param, ndim, n_accept_dstar) # update D
-            param,n_accept_sigmares,loglike = step_four(posterior_object_for_sample, loglike, D, param, ndim, n_accept_sigmares) 
-            param,n_accept_rx,loglike       = step_five(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rx)
-            param,n_accept_rc,loglike       = step_six(posterior_object_for_sample, loglike, D, param, ndim, n_accept_rc)
+            param,n_accept_cosmo,loglike    = step_one(posterior_object_for_sample, loglike, param, ndim, cov_proposal_cosmo, n_accept_cosmo)
+            param,n_accept_B,loglike        = step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal=cov_proposal_B, n_accept_B=n_accept_B)
+            D,param,n_accept_dstar,loglike  = step_three(posterior_object_for_sample, loglike, D, param, ndim, cov_proposal_p, n_accept_dstar) # update D
+            param,n_accept_sigmares,loglike = step_four(posterior_object_for_sample, loglike, D, param, ndim, cov_proposal_sr, n_accept_sigmares) 
+            param,n_accept_rx,loglike       = step_five(posterior_object_for_sample, loglike, D, param, ndim, cov_proposal_rx, n_accept_rx)
+            param,n_accept_rc,loglike       = step_six(posterior_object_for_sample, loglike, D, param, ndim, cov_proposal_rc, n_accept_rc)
 
             param_loglike = param + [loglike]
             chains.append(np.asarray(param_loglike))   # move on in sample space
@@ -447,7 +397,6 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
             for i in D_chain:
                 wr.writerow(i)
    
-
 
     return acceptance_fracs
 

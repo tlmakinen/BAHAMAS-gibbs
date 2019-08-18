@@ -81,7 +81,7 @@ def log_likelihood(J, sigmaCinv, log_sigmaCinv, param, cosmo_param, data, mu, nd
     anchor = -0.5 * ((mu_sim - mu_fit)**2 / sigma_lz**2) + 1 / (np.sqrt(2 * np.pi) * sigma_lz)
 
     # EDIT: remove anchor for now
-    anchor = 0.0
+    #anchor = 0.0
     
     # INVGAMMA(0.003,0.003) prior distribution on sigma_res^2
     res_prior = log_invgamma(sigma_res**2, 0.003, 0.003)

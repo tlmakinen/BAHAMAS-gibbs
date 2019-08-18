@@ -90,7 +90,7 @@ def redshift_marginalization_integrand(z, param, selection_param, cosmo_param):
     return np.exp(log_latent_marginalized_indiv_selection_fn(mu, param, selection_param)) * supernova_redshift_pdf(z)
 
 def log_redshift_marginalized_indiv_selection_fn(param, selection_param, cosmo_param):
-    return np.log(scipy.integrate.quad(redshift_marginalization_integrand, 0, 1.1, args=(param, selection_param, cosmo_param))[0]) 
+    return np.log(scipy.integrate.quad(redshift_marginalization_integrand, 0, 1.2, args=(param, selection_param, cosmo_param))[0]) 
 
 '''
 Rubin's model:

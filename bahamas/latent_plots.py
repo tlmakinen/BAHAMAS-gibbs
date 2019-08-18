@@ -122,24 +122,24 @@ def plot_post_means(D_chain, datafname):
 
     # plot observed modulus vs M_true to show data scatter
 
-    plt.suptitle('Diagnostic Plot for Posterior Means', fontsize=32)
+    plt.suptitle('Latent Representation of SNIa', fontsize=32)
     # plot M vs M_true
-    ax0.scatter(np.array(m_means), np.array(M_true), color='r', marker = 'x', s=10)
-    ax0.set_xlabel('latent $M$', fontsize=28)
-    ax0.set_ylabel('$M_{sim}$', fontsize=28)
+    ax0.scatter(np.array(M_true), np.array(m_means), color='r', marker = 'x', s=10)
+    ax0.set_ylabel('latent $M$', fontsize=28)
+    ax0.set_xlabel('$M_{sim}$', fontsize=28)
     #ax0.legend(fontsize = 22, loc='upper left')
     # observed c vs simulated c
-    ax1.scatter(data['c'].values, c_true, color = 'b', marker = 'x', s=10, label='observed $\hat{c}$')
+    ax1.scatter(c_true, data['c'].values, color = 'b', marker = 'x', s=10, label='observed $\hat{c}$')
     # latent c vs simulated c
-    ax1.scatter(c_means, c_true, color = 'r', marker = 'x', s=10, label='latent $c$')
-    ax1.set_xlabel('$c$', fontsize=28)
-    ax1.set_ylabel('$c_{sim}$', fontsize=28)
+    ax1.scatter(c_true, c_means, color = 'r', marker = 'x', s=10, label='latent $c$')
+    ax1.set_ylabel('$c$', fontsize=28)
+    ax1.set_xlabel('$c_{sim}$', fontsize=28)
     ax1.legend(fontsize = 22, loc='best')
     # x1
-    ax2.scatter(data['x1'].values, c_true, color = 'b', marker = 'x', s=10, label='observed $\hat{x}_1$')
-    ax2.scatter(c_means, c_true, color = 'r', marker = 'x', s=10, label='latent $x_1$')
-    ax2.set_xlabel('$x_1$', fontsize=28)
-    ax2.set_ylabel('$x_{1,sim}$', fontsize=28)
+    ax2.scatter(x1_true, data['x1'].values, color = 'b', marker = 'x', s=10, label='observed $\hat{x}_1$')
+    ax2.scatter(x1_true, x_means, color = 'r', marker = 'x', s=10, label='latent $x_1$')
+    ax2.set_ylabel('$x_1$', fontsize=28)
+    ax2.set_xlabel('$x_{1,sim}$', fontsize=28)
     ax2.legend(fontsize = 22, loc='upper left')
     
     plt.show()
