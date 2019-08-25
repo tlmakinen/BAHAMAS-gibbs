@@ -114,7 +114,13 @@ def step_two(posterior_object_for_sample, D, loglike, param, ndim, cov_proposal,
 # sample D, (latent-layer data) and Dstar (SNIa population means)
 def step_three(posterior_object_for_sample, D, param, ndim):
     # get latent attributes from posterior object
-    kstar,sigmak, muA,sigmaA = posterior_object_for_sample.latent_attributes(param)   
+    latentattr = posterior_object_for_sample.latent_attributes(param) 
+    # return old D and param vector if hubble integral not computable
+    if np.isnan(latentattr):
+        return D,param
+    else:
+        kstar,sigmak, muA,sigmaA = latentattr
+    
     # sample new Dstar vector
     param[5:8] = np.random.multivariate_normal(mean=(kstar), cov=sigmak)   # generate new population mean vector
     
@@ -198,8 +204,10 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
 
     
     # Estimated from MultiNest runs
-    cov_proposal_cosmo = np.array([[0.00862212, 0.01333633],
-        [0.01333633, 0.02501767]]) * (2.38**2 / 2) # EDIT: just sample omegam, omegade
+    #cov_proposal_cosmo = np.array([[0.00862212, 0.01333633],
+      #  [0.01333633, 0.02501767]]) * (2.38**2 / 2) # EDIT: just sample omegam, omegade
+
+    cov_proposal_cosmo = np.diag([np.random.rand(), np.random.rand()]) * 0.001 * (2.38**2 / 2)
 
     cov_proposal_B = np.array([[ 7.51338227e-05, -7.81496651e-07],
         [-7.81496651e-07,  7.63401552e-03]]) * (2.38**2 / 2)
