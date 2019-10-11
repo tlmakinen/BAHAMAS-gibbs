@@ -26,7 +26,7 @@ Standard Python modules (e.g. Numpy, Scipy, Pandas) are required, as well as the
 1) run_vanilla_gibbs.sh
     Shell script for executing job on HPC cluster. Working on OpenMP threading to speed up computation
 
-2) `run_gibbs*.py` 
+2) `run_gibbs_jla.py` 
     "Main" script for Python execution. Requires data filename and number of iterations as arguments. 
 
 3) `bahamas/`
@@ -41,14 +41,14 @@ Standard Python modules (e.g. Numpy, Scipy, Pandas) are required, as well as the
         Code for computing distance modulus as a function of cosmological parameters and observed variables. Can be changed for Lambda-CDM or wCDM cosmological models
 
     iv) `selection_effects.py`
-        Code for implementing selection effects addition to log-posterior. Outlined in Chen et al (in prog)
+        Code for implementing selection effects correction to log-posterior. Outlined in Chen et al (in prog)
 
     v) `get_stats.py`
         Helper function for creating observed covariance matrix
 
 4) `data/`
-    i) `sn1a_generator.py`
-        Code for generating JLA-like simulations according to BAHAMAS framework to test inference 
+    i) `sn1a_generator_selection.py`
+        Code for generating JLA-like simulations with selection effects according to BAHAMAS framework to test inference 
 
 ## Posterior Sampling
 
