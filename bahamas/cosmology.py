@@ -57,9 +57,8 @@ def Dlz(omegam, omegade, h, z, omega, z_helio):
 # muz: distance modulus as function of params, redshift
 def muz(cosmo_param, z, z_helio):
     omegam = cosmo_param[0]
-    omegade = cosmo_param[1]
-    w = -1
-    #omegade =  1 - omegam
+    w = cosmo_param[1]
+    omegade =  1 - omegam
     #w = cosmo_param[1]
     #h = cosmo_param[2]
     h = 0.72

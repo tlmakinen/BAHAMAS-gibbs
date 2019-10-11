@@ -32,6 +32,7 @@ true_beta = 2.56
 intrinsic_dispersion = 0.1
 true_omegam = 0.3
 true_omegade= 0.7
+true_w = -1.0
 
 
 true_x1_mean = 0
@@ -328,8 +329,8 @@ def generate_sn1a():
     true_x1 = x1_i
     true_c = c_i
 
-    #Step 7: Apply DES-like Selection cuts on LATENT values
-    phi_i = np.array([true_c, true_x1, true_mb])
+    #Step 7: Apply DES-like Selection cuts on OBSERVED values
+    phi_i = np.array([observed_c1, observed_x1, observed_mb])
     selection_prob_i = np.exp(selection.log_indiv_selection_fn(phi_i))
     selection_tag = 0
 
@@ -343,7 +344,7 @@ def generate_sn1a():
 
 
 
-    return (z,observed_mb,observed_dmb,observed_x1,observed_dx1,observed_c1,observed_dc1,l,b,true_mb,true_x1,true_c, selection_prob_i, selection_tag)
+    return (z,observed_mb,observed_dmb,observed_x1,observed_dx1,observed_c1,observed_dc1,l,b,true_mb,true_x1,true_c, selection_prob_i, selection_tag, mu_i)
 
 
 
@@ -366,6 +367,7 @@ sim_true_x1 = []
 sim_true_c = []
 sim_selection_prob = []
 sim_selection_tag = []
+mu_true = []
 
 # Create DUMP file with all generated (seen and unseen) SN1a
 num_observed = 0
@@ -387,6 +389,7 @@ while num_observed < number_of_sne:
     sim_true_c.append(sim[11])
     sim_selection_prob.append(sim[12])
     sim_selection_tag.append(sim[13])
+    mu_true.append(sim[14])
     if sim[13] > 0:
         num_observed += 1
 
@@ -406,11 +409,12 @@ sim_true_x1 = np.array(sim_true_x1)
 sim_true_c = np.array(sim_true_c)
 sim_selection_prob = np.array(sim_selection_prob)
 sim_selection_tag = np.array(sim_selection_tag)
+mu_true = np.array(mu_true)
 
 
 
 # for selected SN1a
-all_simulated_data = (np.array([sim_z,sim_mb,sim_dmb,sim_x1,sim_dx1,sim_c,sim_dc,sim_l,sim_b,sim_true_mb,sim_true_x1,sim_true_c, sim_selection_prob, sim_selection_tag]).transpose())
+all_simulated_data = (np.array([sim_z,sim_mb,sim_dmb,sim_x1,sim_dx1,sim_c,sim_dc,sim_l,sim_b,sim_true_mb,sim_true_x1,sim_true_c, sim_selection_prob, sim_selection_tag, mu_true]).transpose())
 mask = (all_simulated_data[:, 13] > 0).astype(bool)
 miss_mask = np.invert(mask)
 
@@ -528,6 +532,37 @@ plt.scatter(np.array(sim_z)[mask], np.array(sim_selection_prob)[mask],
                     color='b', marker ='.', s=3)
 
 plt.savefig('simuated_selection_fn.png')
+
+
+# make residual plot
+fig = plt.figure(figsize=(20,10))
+ax = plt.subplot(111)
+plt.xlabel('$z$', fontsize=20)
+plt.ylabel(r'$\mu - \mu_{sim} - M_0$', fontsize=20)
+
+
+residual = sim_true_mb - mu_true + true_alpha*sim_true_x1 - true_beta*sim_true_c + 19.3
+
+# scipy stats module for statistic binning
+# first plot all snia
+bin_means, bin_edges, binnumber = ss.binned_statistic(sim_z, residual, statistic='mean', bins=25)
+bin_width = (bin_edges[1] - bin_edges[0])
+bin_centers = bin_edges[1:] - bin_width/2
+
+ax.bar(bin_centers, bin_means, width=0.05, color='r')
+
+# now plot selected snia
+bin_means, bin_edges, binnumber = ss.binned_statistic(sim_z[mask], residual[mask], statistic='mean', bins=12)
+bin_width = (bin_edges[1] - bin_edges[0])
+bin_centers = bin_edges[1:] - bin_width/2
+
+ax.bar(bin_centers, bin_means, width=0.05, color='b')
+
+#ax.bar(np.array(sim_z)[miss_mask], residual[miss_mask], width=binwidth, color='r')
+#ax.bar(np.array(sim_z)[mask], residual[mask], width=binwidth, color='b')
+plt.savefig('residual_barplot.png')
+
+
 #plt.show()
 
 

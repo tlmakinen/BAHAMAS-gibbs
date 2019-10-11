@@ -63,15 +63,15 @@ def makePrior(cube, ndim=1, nparams=1):
     cube[5] = priors.gaussian(cube[5], 0, 1**2)          # cstar 
     cube[6] = priors.gaussian(cube[6], 0., 10**2)       # xstar
     cube[7] = priors.gaussian(cube[7], -19.3, 2**2)        # mstar
-    cube[8] = cube[8] * 2                                # omegam
-    cube[9] = cube[9] * 2                                # omegade   EDIT
+    cube[8] = cube[8] * 1                                # omegam
+    cube[9] = cube[9] * -4                                # w   EDIT
     cube[10] = 0.3 + cube[10] * 0.7                      # h   EDIT
     return cube
 
 # true theta for likelihood
 #param = [.14, 3.2, np.exp(.560333), np.exp(-2.3171), .1, -0.06, 0.0, -19.1, .3, -1, .7]
 param = [0.13, 2.56, 
-            1.0, 0.1, 0.1, 0., 0., -19.3, 0.3, 0.7, 0.72]
+            1.0, 0.1, 0.1, 0., 0., -19.3, 0.3, -1.0, 0.72]
 
 # Create Gibbs Posterior Model Object
 t1 = time.time()
@@ -112,14 +112,14 @@ import csv
 fname = './gibbs_chains/' + 'sampler_stats.csv'
 with open(fname, 'w') as myfile:
     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-        #for i in [[n_accept_cosmo/niters , n_accept_B/niters]]:
+    wr.writerow(['cosmo_accfrac', 'salt_accfrac', 'runtime'])
     wr.writerow([n_cosmo, n_B, t2-t1])
 
 # make latent diagnostic posterior plot
 from latent_plots import plot_post_means
 start = int(niters * 0.4)
 D = pd.read_csv('./gibbs_chains/D_latent.csv', sep=',', header=None)[start::10] # thin chain
-datafname = './data/lc_params.txt'
+datafname = 'sel_lcparams.txt'
 
 plot_post_means(D, datafname)
 

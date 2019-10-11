@@ -43,9 +43,9 @@ def multivariate_gaussian(r, mu, sigma):
 
 def constraints(param):
     # have we run off the edge of the prior?
-    if (param[8] > 2.) or (param[8] < 0.): # omegam
+    if (param[8] > 1.) or (param[8] < 0.): # omegam
         return True
-    if (param[9] > 2.) or (param[9] < 0.): # omegade
+    if (param[9] > 0.) or (param[9] < -4.): # w
         return True
     if (param[10] < 0.3) or (param[10] > 1.): # h
         return True
@@ -53,6 +53,7 @@ def constraints(param):
         return True
     if (param[1] > 4.) or (param[1] < 0.): # beta
         return True
+
 
     else:
         return False

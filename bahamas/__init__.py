@@ -36,7 +36,10 @@ def vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, param, data, ndat):
     #param = param[0:8]
    
     # selection params: gc, gx1, gmb, eps
-    selection_param = [0.45895811, 0.06703621, -1.34334963, 29.96879778]
+    eps,gmb,gc,gx1 = (20.77358774, -0.93716505, -0.34574394,  0.10286449)
+    #selection_param = [0.45895811, 0.06703621, -1.34334963, 29.96879778]
+    #eps,gmb,gc,gx1 = (7.78729424, -11.86049224,   0.05583266,   0.42658155)
+    selection_param = [gc, gx1, gmb, eps]
     cosmo_param = param[8:10] # EDIT
     param = param[0:8]        # EDIT
     
@@ -60,7 +63,10 @@ def vincent_log_integral(param, data, ndat):
     #param = param[0:8]
     
     # selection params: gc, gx1, gmb, eps
-    selection_param = [0.45895811, 0.06703621, -1.34334963, 29.96879778]
+    #selection_param = [0.45895811, 0.06703621, -1.34334963, 29.96879778]
+    #eps,gmb,gc,gx1 = (7.78729424, -11.86049224,   0.05583266,   0.42658155)
+    eps,gmb,gc,gx1 = (20.77358774, -0.93716505, -0.34574394,  0.10286449)
+    selection_param = [gc, gx1, gmb, eps]
     cosmo_param = param[8:10] # EDIT
     param = param[0:8]        # EDIT
     
@@ -77,7 +83,10 @@ def vincent_log_integral(param, data, ndat):
 
 def vincent_log_weights(param, data, ndat):
 
-    selection_param = [0.45895811, 0.06703621, -1.34334963, 29.96879778]
+    #selection_param = [0.45895811, 0.06703621, -1.34334963, 29.96879778]
+    #eps,gmb,gc,gx1 = (7.78729424, -11.86049224,   0.05583266,   0.42658155)
+    eps,gmb,gc,gx1 = (20.77358774, -0.93716505, -0.34574394,  0.10286449)
+    selection_param = [gc, gx1, gmb, eps]
     cosmo_param = param[8:10] # EDIT
     param = param[0:8]        # EDIT
     

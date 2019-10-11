@@ -31,6 +31,21 @@ import priors
 
 print('----BEGINNING IMPORTANCE SAMPLING FOR SELECTION EFFECTS----')
 
+# define parameters learned
+parameters = ['alpha', 'beta', 'rx', 'rc', 'sigma_res',
+          'cstar', 'xstar', 'mstar',
+          'omegam', 'w', 'h', 'loglike']
+
+posterior_params = ['alpha', 'beta', 'rx', 'rc', 'sigma_res',
+                'cstar', 'xstar', 'mstar',
+                'omegam', 'w', 'h']
+
+ndim = len(parameters)
+
+# compute offset constant for weights
+true_param = [0.13, 2.56, 
+        1.0, 0.1, 0.1, 0., 0., -19.3, 0.3, -1.0, 0.72]
+
 sim_number = sys.argv[1]
 datafname = 'sel_lcparams.txt'
 datastats = 'sel_simstatssys.txt'
@@ -57,22 +72,6 @@ for i in range(ndat):
 J  = np.matrix(J)
 
 
-# define parameters learned
-parameters = ['alpha', 'beta', 'rx', 'rc', 'sigma_res',
-          'cstar', 'xstar', 'mstar',
-          'omegam', 'omegade', 'h', 'loglike']
-
-posterior_params = ['alpha', 'beta', 'rx', 'rc', 'sigma_res',
-                'cstar', 'xstar', 'mstar',
-                'omegam', 'omegade', 'h']
-
-ndim = len(parameters)
-
-# compute offset constant for weights
-true_param = [0.13, 2.56, 
-        1.0, 0.1, 0.1, 0., 0., -19.3, 0.3, 0.7, 0.72]
-#print('vanilla LL at true params: ', bahamas.vanilla_log_likelihood(J, sigmaCinv, log_sigmaCinv, true_param, data, ndat))
-#print('corrected LL at true param: ', bahamas.vincent_log_likelihood(J, sigmaCinv, log_sigmaCinv, true_param, data, ndat))
 
 const = (bahamas.vincent_log_integral(true_param, data, ndat))  # set offset to the log-correction at true theta
 

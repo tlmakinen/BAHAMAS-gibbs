@@ -116,8 +116,8 @@ def step_three(posterior_object_for_sample, D, param, ndim):
     # get latent attributes from posterior object
     latentattr = posterior_object_for_sample.latent_attributes(param) 
     # return old D and param vector if hubble integral not computable
-    if np.isnan(latentattr):
-        return D,param
+    if len(latentattr) == 1:
+        return D, param
     else:
         kstar,sigmak, muA,sigmaA = latentattr
     
@@ -188,7 +188,7 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
     # set up empty D column-stacked latent variable array
     D = []
     for i in range(ndat):
-        D.append(np.zeros((1,3)))
+        D.append((np.zeros((1,3))))
 
     # empty chain for parameter vectors
     chains = []

@@ -391,7 +391,7 @@ def runGibbs(prior, posterior_object_for_sample, ndim, niters, niters_burn, outd
         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
             
         for iter in range(niters):
-
+            
             param,n_accept_cosmo,loglike    = step_one(posterior_object_for_sample, loglike, param, ndim, cosmo_proposal_cov, n_accept_cosmo)
             param,n_accept_B,loglike        = step_two(posterior_object_for_sample, loglike, param, ndim, cov_proposal=B_proposal_cov, n_accept_B=n_accept_B)
             D,param,n_accept_dstar,loglike  = step_three(posterior_object_for_sample, loglike, D, param, ndim, n_accept_dstar) # update D

@@ -262,7 +262,7 @@ class posteriorModel(object):
         lz = 0.01
         sigma_lz = 0.0135
 
-        mu_sim = cosmology.muz([0.30, 0.7, 0.72], lz, lz)
+        mu_sim = cosmology.muz([0.30, -1.0, 0.72], lz, lz)
         mu_fit = cosmology.muz(cosmo_param, lz, lz)
         anchor = -0.5 * ((mu_sim - mu_fit)**2 / sigma_lz**2) + 1 / (np.sqrt(2 * np.pi) * sigma_lz)
 

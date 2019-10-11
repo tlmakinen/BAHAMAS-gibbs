@@ -26,13 +26,45 @@ is a logistic function = 1 / 1 + exp(- (gc * c_i + gx * x_i + gm * mB_i + eps))
 # old snls coeffs: -1.7380184749999987, 0.07955165160000005, -2.60483735, 62.15588654
 
 '''
-# trained on DES sims
-eps,gmB,gc,gx1 = (29.96879778, -1.34334963,  0.45895811,  0.06703621)
 
+'''
+Define coordinate transform to ensure numerical inference over selection effects correction
+is balanced:
+\tilde{c}_i = (c_i - min(c)) / (max(c) - min(c))
+
+where c = {c}j, j = 1, ..., nsim latent c
+
+'''
+c_max = 1.83407
+c_min = -2.99878
+mb_max = 25.678583108978067
+mb_min = 15.373196696001274 
+x1_max = 0.361242
+x1_min = -0.23834
+
+
+def coord_transform(x, x_max, x_min):
+    return (x - x_min) / (x_max - x_min)
+
+def inv_coord_transform(x_t, x_max, x_min):
+    return x_t * (x_max - x_min) + x_min
+
+max_pars = [1.83407, 0.361242, 25.678583108978067]
+min_pars = [-2.99878,  -0.23834, 15.373196696001274]
+
+# trained on DES sims
+#eps,gmB,gc,gx1 = (29.96879778, -1.34334963,  0.45895811,  0.06703621)
+eps,gmB,gc,gx1 = (20.77358774, -0.93716505, -0.34574394,  0.10286449)
+#eps,gmB,gc,gx1 = (7.78729424, -11.86049224,   0.05583266,   0.42658155)
 #gc,gx1,gmB,eps = (-1.7380184749999987, 0.07955165160000005, -2.60483735, 62.15588654)
 
 
 def log_indiv_selection_fn(phi_i, selection_param=(gc, gx1, gmB, eps)):
+    max_pars = [1.83407, 0.361242, 25.678583108978067]
+    min_pars = [-2.99878,  -0.23834, 15.373196696001274]
+
+    #selection_param = [coord_transform(selection_param[j], max_pars[j], min_pars[j]) for j in range(len(selection_param[:3]))]
+
     coefs = np.array(selection_param)
     position = np.array([*phi_i, 1])
     argument = np.dot(coefs, position)
@@ -52,12 +84,19 @@ We can integrate out Phi_i analytically to get P(I_i | z_i, params):
     denominator = sqrt(8/pi + (gc + gm * beta)**2 Rc**2 + (gx - gm * alpha)**2 Rx**2 + (gm * sigma_res)**2)
     P(I_i | z_i, params) = cdf_n(numerator / denominator)
 '''
+
+
 # original snls selection pars: -1.7380184749999987, 0.07955165160000005, -2.60483735, 62.15588654
 def log_latent_marginalized_indiv_selection_fn(mu_i, param, 
                                                selection_param=(gc, gx1, gmB, eps)):
     alpha, beta = param[0:2]
     rx, rc, sigma_res = param[2:5]
     cstar, xstar, mstar = param[5:8]
+
+    # coord transform
+    #par = [cstar,xstar,mstar]
+    #cstar,xstar,mstar = (coord_transform(par[i], max_pars[i], min_pars[i]) for i in range(len(param[5:8])))
+
     gc, gx, gm, eps = selection_param
     
     coefs = np.array([gc + gm * beta, gx - gm * alpha, gm, eps])
